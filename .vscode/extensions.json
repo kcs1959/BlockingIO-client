@@ -1,0 +1,7 @@
+{
+  "recommendations": [
+    "matklad.rust-analyzer",
+    "cadenas.vscode-glsllint",
+    "slevesque.shader"
+  ]
+}
