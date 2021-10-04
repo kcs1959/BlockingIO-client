@@ -1,6 +1,6 @@
-use starry_night::gl;
-use starry_night::gl::types::*;
-use starry_night::gl::Gl;
+use crate::gl;
+use crate::gl::types::*;
+use crate::gl::Gl;
 
 use std::ffi::{CStr, CString};
 use std::fs::File;

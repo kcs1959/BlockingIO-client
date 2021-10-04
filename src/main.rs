@@ -10,21 +10,17 @@ use sdl2::VideoSubsystem;
 
 use sn::gl;
 use sn::gl::Gl;
+use sn::shader::Program;
+use sn::shader::Shader;
 use sn::texture::image_manager::ImageManager;
 use sn::texture::texture_atlas::TextureUV;
+use sn::vao::vao_builder::CuboidTextures;
+use sn::vao::vao_builder::VaoBuilder;
 use starry_night as sn;
 
 type Vector3 = nalgebra::Vector3<f32>;
 type Matrix4 = nalgebra::Matrix4<f32>;
 type Point3 = nalgebra::Point3<f32>;
-
-use crate::shader::Program;
-use crate::shader::Shader;
-use crate::vao::vao_builder::CuboidTextures;
-use crate::vao::vao_builder::VaoBuilder;
-
-pub mod shader;
-pub mod vao;
 
 struct Game {
     _sdl: Sdl,

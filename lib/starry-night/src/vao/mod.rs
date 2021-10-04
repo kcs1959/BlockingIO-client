@@ -1,10 +1,9 @@
 use std::mem;
 use std::os::raw::c_void;
 
-use sn::gl;
-use sn::gl::types::{GLenum, GLfloat, GLint, GLsizei, GLsizeiptr};
-use sn::gl::Gl;
-use starry_night as sn;
+use crate::gl;
+use crate::gl::types::{GLenum, GLfloat, GLint, GLsizei, GLsizeiptr};
+use crate::gl::Gl;
 
 pub mod vao_builder;
 

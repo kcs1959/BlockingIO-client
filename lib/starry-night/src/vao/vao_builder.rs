@@ -1,10 +1,9 @@
 use std::mem;
 
 use super::Vao;
-use sn::gl;
-use sn::gl::{types::GLfloat, Gl};
-use sn::texture::texture_atlas::TextureUV;
-use starry_night as sn;
+use crate::gl;
+use crate::gl::{types::GLfloat, Gl};
+use crate::texture::texture_atlas::TextureUV;
 
 type Point3 = nalgebra::Point3<f32>;
 
