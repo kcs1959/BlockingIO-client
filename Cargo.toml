@@ -1,6 +1,6 @@
 [package]
 name = "starry-night"
-version = "0.0.0"
+version = "0.0.1"
 license = "MPL-2.0"
 authors  = ["yuma140902 <yuma140902@gmail.com>"]
 description = "A toy game engine"
@@ -12,6 +12,7 @@ build = "src/build.rs"
 
 [dependencies]
 image = "0.23.14"
+nalgebra = "0.29.0"
 
 [build-dependencies]
 gl_generator = "0.14.0"
