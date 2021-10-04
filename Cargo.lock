@@ -55,7 +55,6 @@ name = "blocking-io-client"
 version = "0.1.0"
 dependencies = [
  "c_str_macro",
- "gl",
  "image",
  "imgui",
  "imgui-opengl-renderer",
@@ -63,6 +62,7 @@ dependencies = [
  "nalgebra",
  "nalgebra-glm",
  "sdl2",
+ "starry-night",
  "tungstenite",
 ]
 
@@ -252,13 +252,6 @@ checksum = "5a668f699973d0f573d15749b7002a9ac9e1f9c6b220e7b165601334c173d8de"
 dependencies = [
  "color_quant",
  "weezl",
-]
-
-[[package]]
-name = "gl"
-version = "0.1.0"
-dependencies = [
- "gl_generator",
 ]
 
 [[package]]
@@ -816,6 +809,14 @@ name = "smallvec"
 version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1ecab6c735a6bb4139c0caafd0cc3635748bbb3acf4550e8138122099251f309"
+
+[[package]]
+name = "starry-night"
+version = "0.0.0"
+dependencies = [
+ "gl_generator",
+ "image",
+]
 
 [[package]]
 name = "syn"

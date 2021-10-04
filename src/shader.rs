@@ -1,6 +1,6 @@
-use gl;
-use gl::types::*;
-use gl::Gl;
+use starry_night::gl;
+use starry_night::gl::types::*;
+use starry_night::gl::Gl;
 
 use std::ffi::{CStr, CString};
 use std::fs::File;

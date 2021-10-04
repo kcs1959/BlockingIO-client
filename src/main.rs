@@ -1,4 +1,3 @@
-use gl::Gl;
 use imgui_sdl2::ImguiSdl2;
 use sdl2::video::GLContext;
 use sdl2::video::Window;
@@ -6,13 +5,14 @@ use sdl2::EventPump;
 use sdl2::Sdl;
 use sdl2::TimerSubsystem;
 use sdl2::VideoSubsystem;
+use starry_night::gl::Gl;
+
+use starry_night::texture::image_manager::ImageManager;
 
 use crate::shader::Program;
 use crate::shader::Shader;
-use crate::texture::image_manager::ImageManager;
 
 pub mod shader;
-pub mod texture;
 
 struct Game {
     sdl: Sdl,
