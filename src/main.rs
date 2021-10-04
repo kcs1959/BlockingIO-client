@@ -8,12 +8,20 @@ use sdl2::Sdl;
 use sdl2::TimerSubsystem;
 use sdl2::VideoSubsystem;
 
+use sn::gl;
 use sn::gl::Gl;
 use sn::texture::image_manager::ImageManager;
+use sn::texture::texture_atlas::TextureUV;
 use starry_night as sn;
+
+type Vector3 = nalgebra::Vector3<f32>;
+type Matrix4 = nalgebra::Matrix4<f32>;
+type Point3 = nalgebra::Point3<f32>;
 
 use crate::shader::Program;
 use crate::shader::Shader;
+use crate::vao::vao_builder::CuboidTextures;
+use crate::vao::vao_builder::VaoBuilder;
 
 pub mod shader;
 pub mod vao;
@@ -108,13 +116,45 @@ impl Game {
 
 fn main() {
     let mut game = Game::init();
+    let gl = &game.gl;
+
     let main_texture = game
         .image_manager
         .load_image(Path::new("rsc/textures/atlas/main.png"), "atlas/main", true)
         .unwrap();
 
+    let mut vao_builder = VaoBuilder::new();
+    vao_builder.add_cuboid(
+        &Point3::new(0.0, 0.0, 0.0),
+        &Point3::new(0.5, 0.5, 0.5),
+        CuboidTextures {
+            top: &TextureUV::of_atlas(0, 0, 64, 64, main_texture.width, main_texture.height),
+            bottom: &TextureUV::of_atlas(0, 0, 64, 64, main_texture.width, main_texture.height),
+            south: &TextureUV::of_atlas(0, 0, 64, 64, main_texture.width, main_texture.height),
+            north: &TextureUV::of_atlas(0, 0, 64, 64, main_texture.width, main_texture.height),
+            west: &TextureUV::of_atlas(0, 0, 64, 64, main_texture.width, main_texture.height),
+            east: &TextureUV::of_atlas(0, 0, 64, 64, main_texture.width, main_texture.height),
+        },
+    );
+    let vao = vao_builder.build(gl);
+
+    /* デバッグ用 */
+    let depth_test = true;
+    let blend = true;
+    let wireframe = false;
+    let culling = true;
+    let alpha: f32 = 1.0;
+    /* ベクトルではなく色 */
+    let material_specular = Vector3::new(0.2, 0.2, 0.2);
+    let material_shininess: f32 = 0.1;
+    let light_direction = Vector3::new(1.0, 1.0, 0.0);
+    /* ambient, diffuse, specular はベクトルではなく色 */
+    let ambient = Vector3::new(0.3, 0.3, 0.3);
+    let diffuse = Vector3::new(0.5, 0.5, 0.5);
+    let specular = Vector3::new(0.2, 0.2, 0.2);
 
     'main: loop {
+        // イベントを処理
         for event in game.event_pump.poll_iter() {
             game.imgui_sdl2.handle_event(&mut game.imgui, &event);
             if game.imgui_sdl2.ignore_event(&event) {
@@ -127,6 +167,80 @@ fn main() {
                 _ => {}
             }
         }
+
+        let (width, height) = game.window.drawable_size();
+
+        unsafe {
+            if depth_test {
+                gl.Enable(gl::DEPTH_TEST);
+            } else {
+                gl.Disable(gl::DEPTH_TEST);
+            }
+
+            if blend {
+                gl.Enable(gl::BLEND);
+                gl.BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+            } else {
+                gl.Disable(gl::BLEND);
+            }
+
+            if wireframe {
+                gl.PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
+            } else {
+                gl.PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
+            }
+
+            if culling {
+                gl.Enable(gl::CULL_FACE);
+            } else {
+                gl.Disable(gl::CULL_FACE);
+            }
+        }
+
+        unsafe {
+            gl.Viewport(0, 0, width as i32, height as i32);
+
+            gl.ClearColor(1.0, 1.0, 1.0, 1.0);
+            gl.Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+        }
+
+        let model_matrix = Matrix4::identity();
+        let view_matrix = Matrix4::look_at_rh(
+            &Point3::new(1.5, 1.5, 1.5),
+            &Point3::new(0.0, 0.0, 0.0),
+            &Vector3::new(0.0, 1.0, 0.0),
+        );
+        let projection_matrix: Matrix4 = Matrix4::new_perspective(
+            width as f32 / height as f32,
+            std::f32::consts::PI / 4.0f32,
+            0.1,
+            100.0,
+        );
+
+        unsafe {
+            use c_str_macro::c_str;
+            let shader = &game.shader;
+            shader.set_used();
+            shader.set_mat4(c_str!("uModel"), &model_matrix);
+            shader.set_mat4(c_str!("uView"), &view_matrix);
+            shader.set_mat4(c_str!("uProjection"), &projection_matrix);
+            shader.set_float(c_str!("uAlpha"), alpha);
+            shader.set_vec3(c_str!("uViewPosition"), 1.5f32, 1.5f32, 1.5f32);
+            shader.set_vector3(c_str!("uMaterial.specular"), &material_specular);
+            shader.set_float(c_str!("uMaterial.shininess"), material_shininess);
+            shader.set_vector3(c_str!("uLight.direction"), &light_direction);
+            shader.set_vector3(c_str!("uLight.ambient"), &ambient);
+            shader.set_vector3(c_str!("uLight.diffuse"), &diffuse);
+            shader.set_vector3(c_str!("uLight.specular"), &specular);
+        }
+
+        unsafe {
+            gl.BindTexture(gl::TEXTURE_2D, main_texture.gl_id);
+            vao.draw_triangles();
+            gl.BindTexture(gl::TEXTURE_2D, 0);
+        }
+
+        game.window.gl_swap_window();
 
         std::thread::sleep(std::time::Duration::new(0, 1_000_000_000u32 / 60)); // 60FPS
     }
