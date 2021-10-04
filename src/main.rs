@@ -5,9 +5,10 @@ use sdl2::EventPump;
 use sdl2::Sdl;
 use sdl2::TimerSubsystem;
 use sdl2::VideoSubsystem;
-use starry_night::gl::Gl;
 
-use starry_night::texture::image_manager::ImageManager;
+use sn::gl::Gl;
+use sn::texture::image_manager::ImageManager;
+use starry_night as sn;
 
 use crate::shader::Program;
 use crate::shader::Shader;
