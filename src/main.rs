@@ -31,7 +31,6 @@ struct Game {
     window: Window,
     _gl_context: GLContext, /* GLContextを誰かが所有していないとOpenGLを使えない */
     gl: Gl,
-    shader: Program,
     imgui: imgui::Context,
     imgui_sdl2: ImguiSdl2,
     _imgui_renderer: imgui_opengl_renderer::Renderer,
@@ -69,11 +68,6 @@ impl Game {
         let gl = Gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as _);
         println!("OK: init GL context");
 
-        let vert_shader = Shader::from_vert_file(gl.clone(), "rsc/shader/shader.vs").unwrap();
-        let frag_shader = Shader::from_frag_file(gl.clone(), "rsc/shader/shader.fs").unwrap();
-        let shader = Program::from_shaders(gl.clone(), &[vert_shader, frag_shader]).unwrap();
-        println!("OK: shader program");
-
         let mut imgui = imgui::Context::create();
         imgui.set_ini_filename(None);
         let imgui_sdl2 = imgui_sdl2::ImguiSdl2::new(&mut imgui, &window);
@@ -102,7 +96,6 @@ impl Game {
             window,
             _gl_context,
             gl,
-            shader,
             imgui,
             imgui_sdl2,
             _imgui_renderer: imgui_renderer,
@@ -115,6 +108,10 @@ impl Game {
 fn main() {
     let mut game = Game::init();
     let gl = &game.gl;
+    let vert_shader = Shader::from_vert_file(gl.clone(), "rsc/shader/shader.vs").unwrap();
+    let frag_shader = Shader::from_frag_file(gl.clone(), "rsc/shader/shader.fs").unwrap();
+    let shader = Program::from_shaders(gl.clone(), &[vert_shader, frag_shader]).unwrap();
+    println!("OK: shader program");
 
     let main_texture = game
         .image_manager
@@ -134,7 +131,7 @@ fn main() {
             east: &TextureUV::of_atlas(0, 0, 64, 64, main_texture.width, main_texture.height),
         },
     );
-    vao_builder.attatch_program(game.shader);
+    vao_builder.attatch_program(shader);
     let vao = vao_builder.build(gl);
 
     /* デバッグ用 */
