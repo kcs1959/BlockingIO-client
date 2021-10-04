@@ -104,5 +104,22 @@ impl Game {
 }
 
 fn main() {
-    Game::init();
+    let mut game = Game::init();
+
+    'main: loop {
+        for event in game.event_pump.poll_iter() {
+            game.imgui_sdl2.handle_event(&mut game.imgui, &event);
+            if game.imgui_sdl2.ignore_event(&event) {
+                continue;
+            }
+
+            use sdl2::event::Event;
+            match event {
+                Event::Quit { .. } => break 'main,
+                _ => {}
+            }
+        }
+
+        std::thread::sleep(std::time::Duration::new(0, 1_000_000_000u32 / 60)); // 60FPS
+    }
 }
