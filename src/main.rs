@@ -27,16 +27,16 @@ pub mod shader;
 pub mod vao;
 
 struct Game {
-    sdl: Sdl,
+    _sdl: Sdl,
     _video_subsystem: VideoSubsystem,
-    timer_subsystem: TimerSubsystem,
+    _timer_subsystem: TimerSubsystem,
     window: Window,
     _gl_context: GLContext, /* GLContextを誰かが所有していないとOpenGLを使えない */
     gl: Gl,
     shader: Program,
     imgui: imgui::Context,
     imgui_sdl2: ImguiSdl2,
-    imgui_renderer: imgui_opengl_renderer::Renderer,
+    _imgui_renderer: imgui_opengl_renderer::Renderer,
     event_pump: EventPump,
     image_manager: ImageManager,
 }
@@ -94,20 +94,20 @@ impl Game {
         let event_pump = sdl.event_pump().unwrap();
         println!("OK: init event pump");
 
-        let mut image_manager = ImageManager::new(gl.clone());
+        let image_manager = ImageManager::new(gl.clone());
         println!("OK: init ImageManager");
 
         Game {
-            sdl,
+            _sdl: sdl,
             _video_subsystem: video_subsystem,
-            timer_subsystem,
+            _timer_subsystem: timer_subsystem,
             window,
             _gl_context,
             gl,
             shader,
             imgui,
             imgui_sdl2,
-            imgui_renderer,
+            _imgui_renderer: imgui_renderer,
             event_pump,
             image_manager,
         }
