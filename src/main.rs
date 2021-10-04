@@ -12,6 +12,8 @@ use sn::gl;
 use sn::gl::Gl;
 use sn::shader::Program;
 use sn::shader::Shader;
+use sn::shader::Uniform;
+use sn::shader::UniformVariables;
 use sn::texture::image_manager::ImageManager;
 use sn::texture::texture_atlas::TextureUV;
 use sn::vao::vao_builder::CuboidTextures;
@@ -132,6 +134,7 @@ fn main() {
             east: &TextureUV::of_atlas(0, 0, 64, 64, main_texture.width, main_texture.height),
         },
     );
+    vao_builder.attatch_program(game.shader);
     let vao = vao_builder.build(gl);
 
     /* デバッグ用 */
@@ -213,26 +216,27 @@ fn main() {
             100.0,
         );
 
-        unsafe {
+        let uniforms = {
+            let mut uniforms = UniformVariables::new();
             use c_str_macro::c_str;
-            let shader = &game.shader;
-            shader.set_used();
-            shader.set_mat4(c_str!("uModel"), &model_matrix);
-            shader.set_mat4(c_str!("uView"), &view_matrix);
-            shader.set_mat4(c_str!("uProjection"), &projection_matrix);
-            shader.set_float(c_str!("uAlpha"), alpha);
-            shader.set_vec3(c_str!("uViewPosition"), 1.5f32, 1.5f32, 1.5f32);
-            shader.set_vector3(c_str!("uMaterial.specular"), &material_specular);
-            shader.set_float(c_str!("uMaterial.shininess"), material_shininess);
-            shader.set_vector3(c_str!("uLight.direction"), &light_direction);
-            shader.set_vector3(c_str!("uLight.ambient"), &ambient);
-            shader.set_vector3(c_str!("uLight.diffuse"), &diffuse);
-            shader.set_vector3(c_str!("uLight.specular"), &specular);
-        }
+            use Uniform::*;
+            uniforms.add(c_str!("uModel"), Matrix4(&model_matrix));
+            uniforms.add(c_str!("uView"), Matrix4(&view_matrix));
+            uniforms.add(c_str!("uProjection"), Matrix4(&projection_matrix));
+            uniforms.add(c_str!("uAlpha"), Float(alpha));
+            uniforms.add(c_str!("uViewPosition"), TripleFloat(1.5f32, 1.5f32, 1.5f32));
+            uniforms.add(c_str!("uMaterial.specular"), Vector3(&material_specular));
+            uniforms.add(c_str!("uMaterial.shininess"), Float(material_shininess));
+            uniforms.add(c_str!("uLight.direction"), Vector3(&light_direction));
+            uniforms.add(c_str!("uLight.ambient"), Vector3(&ambient));
+            uniforms.add(c_str!("uLight.diffuse"), Vector3(&diffuse));
+            uniforms.add(c_str!("uLight.specular"), Vector3(&specular));
+            uniforms
+        };
 
         unsafe {
             gl.BindTexture(gl::TEXTURE_2D, main_texture.gl_id);
-            vao.draw_triangles();
+            vao.draw_triangles(&uniforms);
             gl.BindTexture(gl::TEXTURE_2D, 0);
         }
 
