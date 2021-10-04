@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use imgui_sdl2::ImguiSdl2;
 use sdl2::video::GLContext;
 use sdl2::video::Window;
@@ -28,7 +30,7 @@ struct Game {
     imgui_sdl2: ImguiSdl2,
     imgui_renderer: imgui_opengl_renderer::Renderer,
     event_pump: EventPump,
-    _image_manager: ImageManager,
+    image_manager: ImageManager,
 }
 
 impl Game {
@@ -99,13 +101,18 @@ impl Game {
             imgui_sdl2,
             imgui_renderer,
             event_pump,
-            _image_manager: image_manager,
+            image_manager,
         }
     }
 }
 
 fn main() {
     let mut game = Game::init();
+    let main_texture = game
+        .image_manager
+        .load_image(Path::new("rsc/textures/atlas/main.png"), "atlas/main", true)
+        .unwrap();
+
 
     'main: loop {
         for event in game.event_pump.poll_iter() {
