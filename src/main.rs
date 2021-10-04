@@ -108,8 +108,8 @@ impl Game {
 fn main() {
     let mut game = Game::init();
     let gl = &game.gl;
-    let vert_shader = Shader::from_vert_file(gl.clone(), "rsc/shader/shader.vs").unwrap();
-    let frag_shader = Shader::from_frag_file(gl.clone(), "rsc/shader/shader.fs").unwrap();
+    let vert_shader = Shader::default_vert(gl.clone()).unwrap(); //glはRcなのでいくらでもクローンして良い
+    let frag_shader = Shader::default_frag(gl.clone()).unwrap();
     let shader = Program::from_shaders(gl.clone(), &[vert_shader, frag_shader]).unwrap();
     println!("OK: shader program");
 
