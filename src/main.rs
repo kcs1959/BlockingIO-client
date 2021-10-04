@@ -14,6 +14,7 @@ use crate::shader::Program;
 use crate::shader::Shader;
 
 pub mod shader;
+pub mod vao;
 
 struct Game {
     sdl: Sdl,
