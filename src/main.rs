@@ -20,6 +20,10 @@ use sn::vao::vao_builder::CuboidTextures;
 use sn::vao::vao_builder::VaoBuilder;
 use starry_night as sn;
 
+mod player;
+
+use crate::player::Player;
+
 type Vector3 = nalgebra::Vector3<f32>;
 type Matrix4 = nalgebra::Matrix4<f32>;
 type Point3 = nalgebra::Point3<f32>;
@@ -134,6 +138,10 @@ fn main() {
     vao_builder.attatch_program(shader);
     let vao = vao_builder.build(gl);
 
+    let player = Player {
+        pos: Point3::new(1.5, 1.5, 1.5),
+    };
+
     /* デバッグ用 */
     let depth_test = true;
     let blend = true;
@@ -202,7 +210,7 @@ fn main() {
 
         let model_matrix = Matrix4::identity();
         let view_matrix = Matrix4::look_at_rh(
-            &Point3::new(1.5, 1.5, 1.5),
+            &player.pos,
             &Point3::new(0.0, 0.0, 0.0),
             &Vector3::new(0.0, 1.0, 0.0),
         );
@@ -221,7 +229,10 @@ fn main() {
             uniforms.add(c_str!("uView"), Matrix4(&view_matrix));
             uniforms.add(c_str!("uProjection"), Matrix4(&projection_matrix));
             uniforms.add(c_str!("uAlpha"), Float(alpha));
-            uniforms.add(c_str!("uViewPosition"), TripleFloat(1.5f32, 1.5f32, 1.5f32));
+            uniforms.add(
+                c_str!("uViewPosition"),
+                TripleFloat(player.pos.x, player.pos.y, player.pos.z),
+            );
             uniforms.add(c_str!("uMaterial.specular"), Vector3(&material_specular));
             uniforms.add(c_str!("uMaterial.shininess"), Float(material_shininess));
             uniforms.add(c_str!("uLight.direction"), Vector3(&light_direction));
