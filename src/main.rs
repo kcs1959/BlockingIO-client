@@ -143,22 +143,17 @@ fn main() {
         west: &TextureUV::of_atlas(0, 0, 64, 64, main_texture.width, main_texture.height),
         east: &TextureUV::of_atlas(0, 0, 64, 64, main_texture.width, main_texture.height),
     };
-    let mut vao_builder = VaoBuilder::new();
+    let mut stage_vao_builder = VaoBuilder::new();
     for x in 0..16 {
         for z in 0..16 {
-            add_block(&mut vao_builder, x, 0, z, &cuboid_textures);
+            add_block(&mut stage_vao_builder, x, 0, z, &cuboid_textures);
             if (x + 1) % (z + 1) == 0 {
-                add_block(&mut vao_builder, x, 1, z, &cuboid_textures);
+                add_block(&mut stage_vao_builder, x, 1, z, &cuboid_textures);
             }
         }
     }
-    vao_builder.add_octahedron(
-        &Point3::new(0.25, 1.5, 0.25),
-        0.25,
-        &TextureUV::of_atlas(0, 1, 64, 64, main_texture.width, main_texture.height),
-    );
-    vao_builder.attatch_program(shader);
-    let vao = vao_builder.build(gl);
+    stage_vao_builder.attatch_program(&shader);
+    let stage_vao = stage_vao_builder.build(gl);
 
     let mut player = Player {
         pos: Point3::new(0.25, 5.0, 0.25),
@@ -213,6 +208,15 @@ fn main() {
                 player.pos.z -= SPEED;
             }
         }
+
+        let mut player_vao_builder = VaoBuilder::new();
+        player_vao_builder.attatch_program(&shader);
+        player_vao_builder.add_octahedron(
+            &Point3::new(player.pos.x, 1.5, player.pos.z),
+            0.25,
+            &TextureUV::of_atlas(0, 1, 64, 64, main_texture.width, main_texture.height),
+        );
+        let player_vao = player_vao_builder.build(gl);
 
         let (width, height) = game.window.drawable_size();
 
@@ -284,7 +288,8 @@ fn main() {
 
         unsafe {
             gl.BindTexture(gl::TEXTURE_2D, main_texture.gl_id);
-            vao.draw_triangles(&uniforms);
+            stage_vao.draw_triangles(&uniforms);
+            player_vao.draw_triangles(&uniforms);
             gl.BindTexture(gl::TEXTURE_2D, 0);
         }
 
