@@ -152,6 +152,11 @@ fn main() {
             }
         }
     }
+    vao_builder.add_octahedron(
+        &Point3::new(0.25, 1.5, 0.25),
+        0.25,
+        &TextureUV::of_atlas(0, 1, 64, 64, main_texture.width, main_texture.height),
+    );
     vao_builder.attatch_program(shader);
     let vao = vao_builder.build(gl);
 
