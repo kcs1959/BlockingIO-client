@@ -155,9 +155,7 @@ fn main() {
     stage_vao_builder.attatch_program(&shader);
     let stage_vao = stage_vao_builder.build(gl);
 
-    let mut player = Player {
-        pos: Point3::new(0.25, 5.0, 0.25),
-    };
+    let mut player = Player::new(Point3::new(0.25, 0.75, 0.75));
 
     /* デバッグ用 */
     let depth_test = true;
@@ -192,27 +190,39 @@ fn main() {
             }
         }
 
+        let key_state = KeyboardState::new(&game.event_pump);
+        if key_state.is_scancode_pressed(Scancode::W) {
+            player.pos_smooth.x += 0.5 / 30.0;
+        }
+        if key_state.is_scancode_pressed(Scancode::S) {
+            player.pos_smooth.x -= 0.5 / 30.0;
+        }
+        if key_state.is_scancode_pressed(Scancode::D) {
+            player.pos_smooth.z += 0.5 / 30.0;
+        }
+        if key_state.is_scancode_pressed(Scancode::A) {
+            player.pos_smooth.z -= 0.5 / 30.0;
+        }
         if frames % 30 == 0 {
-            const SPEED: f32 = 0.5;
-            let key_state = KeyboardState::new(&game.event_pump);
             if key_state.is_scancode_pressed(Scancode::W) {
-                player.pos.x += SPEED;
+                player.pos_grid.x += 0.5;
             }
             if key_state.is_scancode_pressed(Scancode::S) {
-                player.pos.x -= SPEED;
+                player.pos_grid.x -= 0.5;
             }
             if key_state.is_scancode_pressed(Scancode::D) {
-                player.pos.z += SPEED;
+                player.pos_grid.z += 0.5;
             }
             if key_state.is_scancode_pressed(Scancode::A) {
-                player.pos.z -= SPEED;
+                player.pos_grid.z -= 0.5;
             }
+            player.pos_smooth = player.pos_grid;
         }
 
         let mut player_vao_builder = VaoBuilder::new();
         player_vao_builder.attatch_program(&shader);
         player_vao_builder.add_octahedron(
-            &Point3::new(player.pos.x, 1.5, player.pos.z),
+            &player.pos_grid,
             0.25,
             &TextureUV::of_atlas(0, 1, 64, 64, main_texture.width, main_texture.height),
         );
@@ -255,9 +265,14 @@ fn main() {
         }
 
         let model_matrix = Matrix4::identity();
+        const CAM_HEIGHT: Vector3 = Vector3::new(0.0, 5.0, 0.0);
         const DOWN: Vector3 = Vector3::new(0.0, -1.0, 0.0);
         const X_POSITIVE: Vector3 = Vector3::new(1.0, 0.0, 0.0);
-        let view_matrix = Matrix4::look_at_rh(&player.pos, &(player.pos + DOWN), &X_POSITIVE);
+        let view_matrix = Matrix4::look_at_rh(
+            &(player.pos_smooth + CAM_HEIGHT),
+            &(player.pos_smooth + DOWN),
+            &X_POSITIVE,
+        );
         let projection_matrix: Matrix4 = Matrix4::new_perspective(
             width as f32 / height as f32,
             std::f32::consts::PI / 4.0f32,
@@ -275,7 +290,7 @@ fn main() {
             uniforms.add(c_str!("uAlpha"), Float(alpha));
             uniforms.add(
                 c_str!("uViewPosition"),
-                TripleFloat(player.pos.x, player.pos.y, player.pos.z),
+                TripleFloat(player.pos_grid.x, player.pos_grid.y, player.pos_grid.z),
             );
             uniforms.add(c_str!("uMaterial.specular"), Vector3(&material_specular));
             uniforms.add(c_str!("uMaterial.shininess"), Float(material_shininess));
