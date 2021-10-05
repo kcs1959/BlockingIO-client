@@ -1,6 +1,8 @@
 use std::path::Path;
 
 use imgui_sdl2::ImguiSdl2;
+use sdl2::keyboard::KeyboardState;
+use sdl2::keyboard::Scancode;
 use sdl2::video::GLContext;
 use sdl2::video::Window;
 use sdl2::EventPump;
@@ -109,6 +111,17 @@ impl Game {
     }
 }
 
+fn add_block(vao_builder: &mut VaoBuilder, x: i32, y: i32, z: i32, textures: &CuboidTextures) {
+    let x = x as f32 * 0.5;
+    let y = y as f32 * 0.5;
+    let z = z as f32 * 0.5;
+    vao_builder.add_cuboid(
+        &Point3::new(x, y, z),
+        &Point3::new(x + 0.5, y + 0.5, z + 0.5),
+        &textures,
+    );
+}
+
 fn main() {
     let mut game = Game::init();
     let gl = &game.gl;
@@ -122,24 +135,28 @@ fn main() {
         .load_image(Path::new("rsc/textures/atlas/main.png"), "atlas/main", true)
         .unwrap();
 
+    let cuboid_textures = CuboidTextures {
+        top: &TextureUV::of_atlas(0, 0, 64, 64, main_texture.width, main_texture.height),
+        bottom: &TextureUV::of_atlas(0, 0, 64, 64, main_texture.width, main_texture.height),
+        south: &TextureUV::of_atlas(0, 0, 64, 64, main_texture.width, main_texture.height),
+        north: &TextureUV::of_atlas(0, 0, 64, 64, main_texture.width, main_texture.height),
+        west: &TextureUV::of_atlas(0, 0, 64, 64, main_texture.width, main_texture.height),
+        east: &TextureUV::of_atlas(0, 0, 64, 64, main_texture.width, main_texture.height),
+    };
     let mut vao_builder = VaoBuilder::new();
-    vao_builder.add_cuboid(
-        &Point3::new(0.0, 0.0, 0.0),
-        &Point3::new(0.5, 0.5, 0.5),
-        CuboidTextures {
-            top: &TextureUV::of_atlas(0, 0, 64, 64, main_texture.width, main_texture.height),
-            bottom: &TextureUV::of_atlas(0, 0, 64, 64, main_texture.width, main_texture.height),
-            south: &TextureUV::of_atlas(0, 0, 64, 64, main_texture.width, main_texture.height),
-            north: &TextureUV::of_atlas(0, 0, 64, 64, main_texture.width, main_texture.height),
-            west: &TextureUV::of_atlas(0, 0, 64, 64, main_texture.width, main_texture.height),
-            east: &TextureUV::of_atlas(0, 0, 64, 64, main_texture.width, main_texture.height),
-        },
-    );
+    for x in 0..16 {
+        for z in 0..16 {
+            add_block(&mut vao_builder, x, 0, z, &cuboid_textures);
+            if (x + 1) % (z + 1) == 0 {
+                add_block(&mut vao_builder, x, 1, z, &cuboid_textures);
+            }
+        }
+    }
     vao_builder.attatch_program(shader);
     let vao = vao_builder.build(gl);
 
-    let player = Player {
-        pos: Point3::new(1.5, 1.5, 1.5),
+    let mut player = Player {
+        pos: Point3::new(0.25, 5.0, 0.25),
     };
 
     /* デバッグ用 */
@@ -170,6 +187,21 @@ fn main() {
                 Event::Quit { .. } => break 'main,
                 _ => {}
             }
+        }
+
+        const SPEED: f32 = 0.5;
+        let key_state = KeyboardState::new(&game.event_pump);
+        if key_state.is_scancode_pressed(Scancode::W) {
+            player.pos.x += SPEED;
+        }
+        if key_state.is_scancode_pressed(Scancode::S) {
+            player.pos.x -= SPEED;
+        }
+        if key_state.is_scancode_pressed(Scancode::D) {
+            player.pos.z += SPEED;
+        }
+        if key_state.is_scancode_pressed(Scancode::A) {
+            player.pos.z -= SPEED;
         }
 
         let (width, height) = game.window.drawable_size();
@@ -209,11 +241,9 @@ fn main() {
         }
 
         let model_matrix = Matrix4::identity();
-        let view_matrix = Matrix4::look_at_rh(
-            &player.pos,
-            &Point3::new(0.0, 0.0, 0.0),
-            &Vector3::new(0.0, 1.0, 0.0),
-        );
+        const DOWN: Vector3 = Vector3::new(0.0, -1.0, 0.0);
+        const X_POSITIVE: Vector3 = Vector3::new(1.0, 0.0, 0.0);
+        let view_matrix = Matrix4::look_at_rh(&player.pos, &(player.pos + DOWN), &X_POSITIVE);
         let projection_matrix: Matrix4 = Matrix4::new_perspective(
             width as f32 / height as f32,
             std::f32::consts::PI / 4.0f32,
