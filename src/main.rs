@@ -174,7 +174,10 @@ fn main() {
     let diffuse = Vector3::new(0.5, 0.5, 0.5);
     let specular = Vector3::new(0.2, 0.2, 0.2);
 
+    let mut frames: u64 = 0;
     'main: loop {
+        frames += 1;
+
         // イベントを処理
         for event in game.event_pump.poll_iter() {
             game.imgui_sdl2.handle_event(&mut game.imgui, &event);
@@ -189,19 +192,21 @@ fn main() {
             }
         }
 
-        const SPEED: f32 = 0.5;
-        let key_state = KeyboardState::new(&game.event_pump);
-        if key_state.is_scancode_pressed(Scancode::W) {
-            player.pos.x += SPEED;
-        }
-        if key_state.is_scancode_pressed(Scancode::S) {
-            player.pos.x -= SPEED;
-        }
-        if key_state.is_scancode_pressed(Scancode::D) {
-            player.pos.z += SPEED;
-        }
-        if key_state.is_scancode_pressed(Scancode::A) {
-            player.pos.z -= SPEED;
+        if frames % 30 == 0 {
+            const SPEED: f32 = 0.5;
+            let key_state = KeyboardState::new(&game.event_pump);
+            if key_state.is_scancode_pressed(Scancode::W) {
+                player.pos.x += SPEED;
+            }
+            if key_state.is_scancode_pressed(Scancode::S) {
+                player.pos.x -= SPEED;
+            }
+            if key_state.is_scancode_pressed(Scancode::D) {
+                player.pos.z += SPEED;
+            }
+            if key_state.is_scancode_pressed(Scancode::A) {
+                player.pos.z -= SPEED;
+            }
         }
 
         let (width, height) = game.window.drawable_size();
