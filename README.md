@@ -39,3 +39,8 @@ Native opengl をオフに、Disable access control をオンにする。
 > echo 'export LIBRARY_PATH="$LIBRARY_PATH:/usr/local/lib"' >> ~/.bash_profile
 > cargo build
 ```
+
+# 実行
+```
+> cargo run
+```
