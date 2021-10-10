@@ -29,9 +29,6 @@
 > cargo build
 ```
 
-### WSL2 + VcXsrv X Server を使う場合
-Native opengl をオフに、Disable access control をオンにする。
-
 ## macOS (未検証)
 多分 `gcc` が必要
 ```
@@ -44,3 +41,5 @@ Native opengl をオフに、Disable access control をオンにする。
 ```
 > cargo run
 ```
+
+WSL2 + VcXsrv X Server を使う場合は、Native opengl をオフに、Disable access control をオンにする。
