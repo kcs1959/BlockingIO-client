@@ -33,6 +33,7 @@
 Native opengl をオフに、Disable access control をオンにする。
 
 ## macOS (未検証)
+多分 `gcc` が必要
 ```
 > brew install sdl2
 > echo 'export LIBRARY_PATH="$LIBRARY_PATH:/usr/local/lib"' >> ~/.bash_profile
