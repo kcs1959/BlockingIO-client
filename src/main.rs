@@ -10,17 +10,17 @@ use sdl2::Sdl;
 use sdl2::TimerSubsystem;
 use sdl2::VideoSubsystem;
 
-use sn::gl;
-use sn::gl::Gl;
-use sn::shader::Program;
-use sn::shader::Shader;
-use sn::shader::Uniform;
-use sn::shader::UniformVariables;
-use sn::texture::image_manager::ImageManager;
-use sn::texture::texture_atlas::TextureUV;
-use sn::vao::vao_builder::CuboidTextures;
-use sn::vao::vao_builder::VaoBuilder;
-use starry_night as sn;
+use re::gl;
+use re::gl::Gl;
+use re::shader::Program;
+use re::shader::Shader;
+use re::shader::Uniform;
+use re::shader::UniformVariables;
+use re::texture::image_manager::ImageManager;
+use re::texture::texture_atlas::TextureUV;
+use re::vao::vao_builder::CuboidTextures;
+use re::vao::vao_builder::VaoBuilder;
+use reverie_engine as re;
 
 mod player;
 
