@@ -1,3 +1,6 @@
+//! モックAPI
+//! APIが完成したらhttpやwebsocketで通信するコードを書く
+
 use nalgebra::Point3;
 
 use crate::player::Player;
