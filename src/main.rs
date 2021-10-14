@@ -197,29 +197,25 @@ fn main() {
         let key_state = KeyboardState::new(&game.event_pump);
         let mut moved = false;
         if key_state.is_scancode_pressed(Scancode::W) {
-            let new_pos = api.try_move(&Direction::Up, &player);
-            if new_pos != player.pos {
+            if let Some(new_pos) = api.try_move(&Direction::Up, &player) {
                 player.pos = new_pos;
                 moved = true;
             }
         }
         if key_state.is_scancode_pressed(Scancode::S) {
-            let new_pos = api.try_move(&Direction::Down, &player);
-            if new_pos != player.pos {
+            if let Some(new_pos) = api.try_move(&Direction::Down, &player) {
                 player.pos = new_pos;
                 moved = true;
             }
         }
         if key_state.is_scancode_pressed(Scancode::D) {
-            let new_pos = api.try_move(&Direction::Right, &player);
-            if new_pos != player.pos {
+            if let Some(new_pos) = api.try_move(&Direction::Right, &player) {
                 player.pos = new_pos;
                 moved = true;
             }
         }
         if key_state.is_scancode_pressed(Scancode::A) {
-            let new_pos = api.try_move(&Direction::Left, &player);
-            if new_pos != player.pos {
+            if let Some(new_pos) = api.try_move(&Direction::Left, &player) {
                 player.pos = new_pos;
                 moved = true;
             }

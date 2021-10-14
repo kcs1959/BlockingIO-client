@@ -23,23 +23,33 @@ impl Api {
         Player::new(Point3::<f32>::new(0.25, 0.75, 0.75))
     }
 
-    pub fn try_move(&mut self, direction: &Direction, player: &Player) -> Point3<f32> {
+    pub fn try_move(&mut self, direction: &Direction, player: &Player) -> Option<Point3<f32>> {
         if self.frames % 30 == 0 {
             // 本来はブロックの高さなどの判定も行うが、このコードでは無条件に移動可能
             match *direction {
-                Direction::Up => Point3::<f32>::new(player.pos.x + 0.5, player.pos.y, player.pos.z),
-                Direction::Down => {
-                    Point3::<f32>::new(player.pos.x - 0.5, player.pos.y, player.pos.z)
-                }
-                Direction::Right => {
-                    Point3::<f32>::new(player.pos.x, player.pos.y, player.pos.z + 0.5)
-                }
-                Direction::Left => {
-                    Point3::<f32>::new(player.pos.x, player.pos.y, player.pos.z - 0.5)
-                }
+                Direction::Up => Some(Point3::<f32>::new(
+                    player.pos.x + 0.5,
+                    player.pos.y,
+                    player.pos.z,
+                )),
+                Direction::Down => Some(Point3::<f32>::new(
+                    player.pos.x - 0.5,
+                    player.pos.y,
+                    player.pos.z,
+                )),
+                Direction::Right => Some(Point3::<f32>::new(
+                    player.pos.x,
+                    player.pos.y,
+                    player.pos.z + 0.5,
+                )),
+                Direction::Left => Some(Point3::<f32>::new(
+                    player.pos.x,
+                    player.pos.y,
+                    player.pos.z - 0.5,
+                )),
             }
         } else {
-            player.pos
+            None
         }
     }
 }
