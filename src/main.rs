@@ -22,9 +22,11 @@ use re::vao::vao_builder::CuboidTextures;
 use re::vao::vao_builder::VaoBuilder;
 use reverie_engine as re;
 
+mod mock_server;
 mod player;
 
-use crate::player::Player;
+use crate::mock_server::Api;
+use crate::mock_server::Direction;
 
 type Vector3 = nalgebra::Vector3<f32>;
 type Matrix4 = nalgebra::Matrix4<f32>;
@@ -155,7 +157,8 @@ fn main() {
     stage_vao_builder.attatch_program(&shader);
     let stage_vao = stage_vao_builder.build(gl);
 
-    let mut player = Player::new(Point3::new(0.25, 0.75, 0.75));
+    let mut api = Api::new();
+    let mut player = api.join_room("foo");
 
     /* デバッグ用 */
     let depth_test = true;
@@ -172,9 +175,8 @@ fn main() {
     let diffuse = Vector3::new(0.5, 0.5, 0.5);
     let specular = Vector3::new(0.2, 0.2, 0.2);
 
-    let mut frames: u64 = 0;
     'main: loop {
-        frames += 1;
+        api.update();
 
         // イベントを処理
         for event in game.event_pump.poll_iter() {
@@ -192,32 +194,22 @@ fn main() {
 
         let key_state = KeyboardState::new(&game.event_pump);
         if key_state.is_scancode_pressed(Scancode::W) {
-            player.pos_smooth.x += 0.5 / 30.0;
+            let new_pos = api.try_move(&Direction::Up, &player);
+            player.pos_grid = new_pos;
         }
         if key_state.is_scancode_pressed(Scancode::S) {
-            player.pos_smooth.x -= 0.5 / 30.0;
+            let new_pos = api.try_move(&Direction::Down, &player);
+            player.pos_grid = new_pos;
         }
         if key_state.is_scancode_pressed(Scancode::D) {
-            player.pos_smooth.z += 0.5 / 30.0;
+            let new_pos = api.try_move(&Direction::Right, &player);
+            player.pos_grid = new_pos;
         }
         if key_state.is_scancode_pressed(Scancode::A) {
-            player.pos_smooth.z -= 0.5 / 30.0;
+            let new_pos = api.try_move(&Direction::Left, &player);
+            player.pos_grid = new_pos;
         }
-        if frames % 30 == 0 {
-            if key_state.is_scancode_pressed(Scancode::W) {
-                player.pos_grid.x += 0.5;
-            }
-            if key_state.is_scancode_pressed(Scancode::S) {
-                player.pos_grid.x -= 0.5;
-            }
-            if key_state.is_scancode_pressed(Scancode::D) {
-                player.pos_grid.z += 0.5;
-            }
-            if key_state.is_scancode_pressed(Scancode::A) {
-                player.pos_grid.z -= 0.5;
-            }
-            player.pos_smooth = player.pos_grid;
-        }
+        player.pos_smooth = player.pos_grid;
 
         let mut player_vao_builder = VaoBuilder::new();
         player_vao_builder.attatch_program(&shader);
