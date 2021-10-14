@@ -1,6 +1,8 @@
 use std::path::Path;
 
 use imgui_sdl2::ImguiSdl2;
+use re::interpolation::Interpolation;
+use re::types::Time;
 use sdl2::keyboard::KeyboardState;
 use sdl2::keyboard::Scancode;
 use sdl2::video::GLContext;
@@ -193,28 +195,64 @@ fn main() {
         }
 
         let key_state = KeyboardState::new(&game.event_pump);
+        let mut moved = false;
         if key_state.is_scancode_pressed(Scancode::W) {
             let new_pos = api.try_move(&Direction::Up, &player);
-            player.pos_grid = new_pos;
+            if new_pos != player.pos {
+                player.pos = new_pos;
+                moved = true;
+            }
         }
         if key_state.is_scancode_pressed(Scancode::S) {
             let new_pos = api.try_move(&Direction::Down, &player);
-            player.pos_grid = new_pos;
+            if new_pos != player.pos {
+                player.pos = new_pos;
+                moved = true;
+            }
         }
         if key_state.is_scancode_pressed(Scancode::D) {
             let new_pos = api.try_move(&Direction::Right, &player);
-            player.pos_grid = new_pos;
+            if new_pos != player.pos {
+                player.pos = new_pos;
+                moved = true;
+            }
         }
         if key_state.is_scancode_pressed(Scancode::A) {
             let new_pos = api.try_move(&Direction::Left, &player);
-            player.pos_grid = new_pos;
+            if new_pos != player.pos {
+                player.pos = new_pos;
+                moved = true;
+            }
         }
-        player.pos_smooth = player.pos_grid;
+        if moved {
+            player.interpolation_x = Interpolation::new_cubic_ease_in_out(
+                player.pos_camera.x,
+                player.pos.x,
+                api.frames() as Time,
+                30 as Time,
+            );
+            player.interpolation_y = Interpolation::new_cubic_ease_in_out(
+                player.pos_camera.y,
+                player.pos.y,
+                api.frames() as Time,
+                30 as Time,
+            );
+            player.interpolation_z = Interpolation::new_cubic_ease_in_out(
+                player.pos_camera.z,
+                player.pos.z,
+                api.frames() as Time,
+                30 as Time,
+            );
+        }
+
+        player.pos_camera.x = player.interpolation_x.value(api.frames() as Time);
+        player.pos_camera.y = player.interpolation_y.value(api.frames() as Time);
+        player.pos_camera.z = player.interpolation_z.value(api.frames() as Time);
 
         let mut player_vao_builder = VaoBuilder::new();
         player_vao_builder.attatch_program(&shader);
         player_vao_builder.add_octahedron(
-            &player.pos_grid,
+            &player.pos,
             0.25,
             &TextureUV::of_atlas(0, 1, 64, 64, main_texture.width, main_texture.height),
         );
@@ -261,8 +299,8 @@ fn main() {
         const DOWN: Vector3 = Vector3::new(0.0, -1.0, 0.0);
         const X_POSITIVE: Vector3 = Vector3::new(1.0, 0.0, 0.0);
         let view_matrix = Matrix4::look_at_rh(
-            &(player.pos_smooth + CAM_HEIGHT),
-            &(player.pos_smooth + DOWN),
+            &(player.pos_camera + CAM_HEIGHT),
+            &(player.pos_camera + DOWN),
             &X_POSITIVE,
         );
         let projection_matrix: Matrix4 = Matrix4::new_perspective(
@@ -282,7 +320,7 @@ fn main() {
             uniforms.add(c_str!("uAlpha"), Float(alpha));
             uniforms.add(
                 c_str!("uViewPosition"),
-                TripleFloat(player.pos_grid.x, player.pos_grid.y, player.pos_grid.z),
+                TripleFloat(player.pos.x, player.pos.y, player.pos.z),
             );
             uniforms.add(c_str!("uMaterial.specular"), Vector3(&material_specular));
             uniforms.add(c_str!("uMaterial.shininess"), Float(material_shininess));
