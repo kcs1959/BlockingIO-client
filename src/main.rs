@@ -25,6 +25,7 @@ type CuboidTextures<'a> =
     re::vao::vao_builder::CuboidTextures<'a, TEX_W, TEX_H, TEX_ATLAS_W, TEX_ATLAS_H>;
 type VaoBuilder<'a> = re::vao::vao_builder::VaoBuilder<'a, TEX_W, TEX_H, TEX_ATLAS_W, TEX_ATLAS_H>;
 use reverie_engine as re;
+use types::BlockUnit;
 
 mod mock_server;
 mod player;
@@ -129,13 +130,33 @@ impl Game {
     }
 }
 
-fn add_block(vao_builder: &mut VaoBuilder, x: i32, y: i32, z: i32, textures: &CuboidTextures) {
-    let x = x as f32 * 0.5;
-    let y = y as f32 * 0.5;
-    let z = z as f32 * 0.5;
+fn add_block(
+    vao_builder: &mut VaoBuilder,
+    x: i32,
+    y: i32,
+    z: i32,
+    dx: f32,
+    dy: f32,
+    dz: f32,
+    textures: &CuboidTextures,
+) {
+    let x: BlockUnit = x.into();
+    let y: BlockUnit = y.into();
+    let z: BlockUnit = z.into();
+    let dx: BlockUnit = dx.into();
+    let dy: BlockUnit = dy.into();
+    let dz: BlockUnit = dz.into();
     vao_builder.add_cuboid(
-        &Point3::new(x, y, z),
-        &Point3::new(x + 0.5, y + 0.5, z + 0.5),
+        &Point3::new(
+            x.into_render_value(),
+            y.into_render_value(),
+            z.into_render_value(),
+        ),
+        &Point3::new(
+            (x + dx).into_render_value(),
+            (y + dy).into_render_value(),
+            (z + dz).into_render_value(),
+        ),
         &textures,
     );
 }
@@ -149,7 +170,7 @@ fn add_tall_block(vao_builder: &mut VaoBuilder, x: i32, y: i32, z: i32) {
         west: &TextureUV::of_atlas(&TEX_BLOCK_DANGER),
         east: &TextureUV::of_atlas(&TEX_BLOCK_DANGER),
     };
-    add_block(vao_builder, x, y, z, &textures);
+    add_block(vao_builder, x, y, z, 1.0, 1.0, 1.0, &textures);
 }
 
 fn add_short_block(vao_builder: &mut VaoBuilder, x: i32, y: i32, z: i32) {
@@ -161,7 +182,7 @@ fn add_short_block(vao_builder: &mut VaoBuilder, x: i32, y: i32, z: i32) {
         west: &TextureUV::of_atlas(&TEX_BLOCK_SAFE),
         east: &TextureUV::of_atlas(&TEX_BLOCK_SAFE),
     };
-    add_block(vao_builder, x, y, z, &textures);
+    add_block(vao_builder, x, y, z, 1.0, 0.5, 1.0, &textures);
 }
 
 fn main() {
