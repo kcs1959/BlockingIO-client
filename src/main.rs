@@ -266,14 +266,15 @@ fn main() {
     );
 
     let mut stage_vao_builder = VaoBuilder::new();
+    add_floor(&mut stage_vao_builder, 16, 16);
+
+    // テスト用のステージ
     for x in 0..16 {
         for z in 0..16 {
-            add_tall_block(&mut stage_vao_builder, x, 0, z);
-            if (x + 1) % (z + 1) == 0 {
-                add_short_block(&mut stage_vao_builder, x, 1, z);
-            }
+            add_block_with_height(&mut stage_vao_builder, x, 1, z, (x % 4).min(z % 4));
         }
     }
+
     stage_vao_builder.attatch_program(&shader);
     let stage_vao = stage_vao_builder.build(gl);
 
