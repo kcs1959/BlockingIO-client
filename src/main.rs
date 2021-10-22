@@ -161,6 +161,32 @@ fn add_block(
     );
 }
 
+/// ステージの床を追加する
+fn add_floor(vao_builder: &mut VaoBuilder, width: u32, height: u32) {
+    let textures = CuboidTextures {
+        top: &TextureUV::of_atlas(&TEX_BLOCK_TOP),
+        bottom: &TextureUV::of_atlas(&TEX_BLOCK_TOP),
+        south: &TextureUV::of_atlas(&TEX_BLOCK_TOP),
+        north: &TextureUV::of_atlas(&TEX_BLOCK_TOP),
+        west: &TextureUV::of_atlas(&TEX_BLOCK_TOP),
+        east: &TextureUV::of_atlas(&TEX_BLOCK_TOP),
+    };
+    for x in 0..width as i32 {
+        for z in 0..height as i32 {
+            add_block(
+                vao_builder,
+                x,
+                0,
+                z,
+                1.0.into(),
+                1.0.into(),
+                1.0.into(),
+                &textures,
+            );
+        }
+    }
+}
+
 /// 高さに応じてブロックを追加する
 fn add_block_with_height(vao_builder: &mut VaoBuilder, x: i32, y: i32, z: i32, height: i32) {
     if height <= 0 {
