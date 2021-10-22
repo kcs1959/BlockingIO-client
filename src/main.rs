@@ -1,9 +1,6 @@
 use std::path::Path;
 
 use imgui_sdl2::ImguiSdl2;
-use re::interpolation::Interpolation;
-use re::texture::texture_atlas::TextureAtlasPos;
-use re::types::Time;
 use sdl2::keyboard::KeyboardState;
 use sdl2::keyboard::Scancode;
 use sdl2::video::GLContext;
@@ -13,19 +10,23 @@ use sdl2::Sdl;
 use sdl2::TimerSubsystem;
 use sdl2::VideoSubsystem;
 
+type Vector3 = nalgebra::Vector3<f32>;
+type Matrix4 = nalgebra::Matrix4<f32>;
+
 use re::gl;
 use re::gl::Gl;
+use re::interpolation::Interpolation;
 use re::shader::Program;
 use re::shader::Shader;
 use re::shader::Uniform;
 use re::shader::UniformVariables;
 use re::texture::image_manager::ImageManager;
-type TextureUV = re::texture::texture_atlas::TextureUV<TEX_W, TEX_H, TEX_ATLAS_W, TEX_ATLAS_H>;
-type CuboidTextures<'a> =
-    re::vao::vao_builder::CuboidTextures<'a, TEX_W, TEX_H, TEX_ATLAS_W, TEX_ATLAS_H>;
-type VaoBuilder<'a> = re::vao::vao_builder::VaoBuilder<'a, TEX_W, TEX_H, TEX_ATLAS_W, TEX_ATLAS_H>;
+use re::texture::texture_atlas::TextureAtlasPos;
+use re::types::Time;
 use reverie_engine as re;
-use types::BlockUnit;
+
+type TextureUV = re::texture::texture_atlas::TextureUV<TEX_W, TEX_H, TEX_ATLAS_W, TEX_ATLAS_H>;
+type VaoBuilder<'a> = re::vao::vao_builder::VaoBuilder<'a, TEX_W, TEX_H, TEX_ATLAS_W, TEX_ATLAS_H>;
 
 mod mock_server;
 mod player;
@@ -35,10 +36,6 @@ mod vao_ex;
 use crate::mock_server::Api;
 use crate::mock_server::Direction;
 use crate::vao_ex::VaoBuilderEx;
-
-type Vector3 = nalgebra::Vector3<f32>;
-type Matrix4 = nalgebra::Matrix4<f32>;
-type Point3 = nalgebra::Point3<f32>;
 
 // 64x64ピクセルのテクスチャが4x4個並んでいる
 pub const TEX_W: u32 = 64;
