@@ -135,9 +135,9 @@ fn add_block(
     x: i32,
     y: i32,
     z: i32,
-    dx: f32,
-    dy: f32,
-    dz: f32,
+    dx: BlockUnit,
+    dy: BlockUnit,
+    dz: BlockUnit,
     textures: &CuboidTextures,
 ) {
     let x: BlockUnit = x.into();
@@ -161,7 +161,19 @@ fn add_block(
     );
 }
 
-fn add_tall_block(vao_builder: &mut VaoBuilder, x: i32, y: i32, z: i32) {
+/// 高さに応じてブロックを追加する
+fn add_block_with_height(vao_builder: &mut VaoBuilder, x: i32, y: i32, z: i32, height: i32) {
+    if height <= 0 {
+        // pass
+    } else if height == 1 {
+        add_short_block(vao_builder, x, y, z);
+    } else {
+        add_tall_block(vao_builder, x, y, z, height);
+    }
+}
+
+/// 乗り越えられないブロックを追加する
+fn add_tall_block(vao_builder: &mut VaoBuilder, x: i32, y: i32, z: i32, height: i32) {
     let textures = CuboidTextures {
         top: &TextureUV::of_atlas(&TEX_BLOCK_TOP),
         bottom: &TextureUV::of_atlas(&TEX_BLOCK_TOP),
@@ -170,9 +182,21 @@ fn add_tall_block(vao_builder: &mut VaoBuilder, x: i32, y: i32, z: i32) {
         west: &TextureUV::of_atlas(&TEX_BLOCK_DANGER),
         east: &TextureUV::of_atlas(&TEX_BLOCK_DANGER),
     };
-    add_block(vao_builder, x, y, z, 1.0, 1.0, 1.0, &textures);
+    // 1ブロックは立方体の半分なので高さを1/2にする
+    let height: BlockUnit = (height as f32 * 0.5).into();
+    add_block(
+        vao_builder,
+        x,
+        y,
+        z,
+        1.0.into(),
+        height,
+        1.0.into(),
+        &textures,
+    );
 }
 
+/// 乗り越えられるブロックを追加する
 fn add_short_block(vao_builder: &mut VaoBuilder, x: i32, y: i32, z: i32) {
     let textures = CuboidTextures {
         top: &TextureUV::of_atlas(&TEX_BLOCK_TOP),
@@ -182,7 +206,16 @@ fn add_short_block(vao_builder: &mut VaoBuilder, x: i32, y: i32, z: i32) {
         west: &TextureUV::of_atlas(&TEX_BLOCK_SAFE),
         east: &TextureUV::of_atlas(&TEX_BLOCK_SAFE),
     };
-    add_block(vao_builder, x, y, z, 1.0, 0.5, 1.0, &textures);
+    add_block(
+        vao_builder,
+        x,
+        y,
+        z,
+        1.0.into(),
+        0.5.into(),
+        1.0.into(),
+        &textures,
+    );
 }
 
 fn main() {
