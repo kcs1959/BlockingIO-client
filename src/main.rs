@@ -2,6 +2,7 @@ use std::path::Path;
 
 use imgui_sdl2::ImguiSdl2;
 use re::interpolation::Interpolation;
+use re::texture::texture_atlas::TextureAtlasPos;
 use re::types::Time;
 use sdl2::keyboard::KeyboardState;
 use sdl2::keyboard::Scancode;
@@ -19,13 +20,15 @@ use re::shader::Shader;
 use re::shader::Uniform;
 use re::shader::UniformVariables;
 use re::texture::image_manager::ImageManager;
-use re::texture::texture_atlas::TextureUV;
-use re::vao::vao_builder::CuboidTextures;
-use re::vao::vao_builder::VaoBuilder;
+type TextureUV = re::texture::texture_atlas::TextureUV<TEX_W, TEX_H, TEX_ATLAS_W, TEX_ATLAS_H>;
+type CuboidTextures<'a> =
+    re::vao::vao_builder::CuboidTextures<'a, TEX_W, TEX_H, TEX_ATLAS_W, TEX_ATLAS_H>;
+type VaoBuilder<'a> = re::vao::vao_builder::VaoBuilder<'a, TEX_W, TEX_H, TEX_ATLAS_W, TEX_ATLAS_H>;
 use reverie_engine as re;
 
 mod mock_server;
 mod player;
+mod types;
 
 use crate::mock_server::Api;
 use crate::mock_server::Direction;
@@ -33,6 +36,17 @@ use crate::mock_server::Direction;
 type Vector3 = nalgebra::Vector3<f32>;
 type Matrix4 = nalgebra::Matrix4<f32>;
 type Point3 = nalgebra::Point3<f32>;
+
+// 64x64ピクセルのテクスチャが4x4個並んでいる
+const TEX_W: u32 = 64;
+const TEX_H: u32 = 64;
+const TEX_ATLAS_W: u32 = TEX_W * 4;
+const TEX_ATLAS_H: u32 = TEX_H * 4;
+
+const TEX_BLOCK_TOP: TextureAtlasPos = TextureAtlasPos::new(0, 0);
+const TEX_PLAYER_TMP: TextureAtlasPos = TextureAtlasPos::new(0, 1);
+const TEX_BLOCK_DANGER: TextureAtlasPos = TextureAtlasPos::new(0, 2);
+const TEX_BLOCK_SAFE: TextureAtlasPos = TextureAtlasPos::new(0, 3);
 
 struct Game {
     _sdl: Sdl,
@@ -126,6 +140,30 @@ fn add_block(vao_builder: &mut VaoBuilder, x: i32, y: i32, z: i32, textures: &Cu
     );
 }
 
+fn add_tall_block(vao_builder: &mut VaoBuilder, x: i32, y: i32, z: i32) {
+    let textures = CuboidTextures {
+        top: &TextureUV::of_atlas(&TEX_BLOCK_TOP),
+        bottom: &TextureUV::of_atlas(&TEX_BLOCK_TOP),
+        south: &TextureUV::of_atlas(&TEX_BLOCK_DANGER),
+        north: &TextureUV::of_atlas(&TEX_BLOCK_DANGER),
+        west: &TextureUV::of_atlas(&TEX_BLOCK_DANGER),
+        east: &TextureUV::of_atlas(&TEX_BLOCK_DANGER),
+    };
+    add_block(vao_builder, x, y, z, &textures);
+}
+
+fn add_short_block(vao_builder: &mut VaoBuilder, x: i32, y: i32, z: i32) {
+    let textures = CuboidTextures {
+        top: &TextureUV::of_atlas(&TEX_BLOCK_TOP),
+        bottom: &TextureUV::of_atlas(&TEX_BLOCK_TOP),
+        south: &TextureUV::of_atlas(&TEX_BLOCK_SAFE),
+        north: &TextureUV::of_atlas(&TEX_BLOCK_SAFE),
+        west: &TextureUV::of_atlas(&TEX_BLOCK_SAFE),
+        east: &TextureUV::of_atlas(&TEX_BLOCK_SAFE),
+    };
+    add_block(vao_builder, x, y, z, &textures);
+}
+
 fn main() {
     let mut game = Game::init();
     let gl = &game.gl;
@@ -138,21 +176,21 @@ fn main() {
         .image_manager
         .load_image(Path::new("rsc/textures/atlas/main.png"), "atlas/main", true)
         .unwrap();
+    assert_eq!(
+        main_texture.width, TEX_ATLAS_W,
+        "テクスチャのサイズが想定と違います"
+    );
+    assert_eq!(
+        main_texture.height, TEX_ATLAS_H,
+        "テクスチャのサイズが想定と違います"
+    );
 
-    let cuboid_textures = CuboidTextures {
-        top: &TextureUV::of_atlas(0, 0, 64, 64, main_texture.width, main_texture.height),
-        bottom: &TextureUV::of_atlas(0, 0, 64, 64, main_texture.width, main_texture.height),
-        south: &TextureUV::of_atlas(0, 0, 64, 64, main_texture.width, main_texture.height),
-        north: &TextureUV::of_atlas(0, 0, 64, 64, main_texture.width, main_texture.height),
-        west: &TextureUV::of_atlas(0, 0, 64, 64, main_texture.width, main_texture.height),
-        east: &TextureUV::of_atlas(0, 0, 64, 64, main_texture.width, main_texture.height),
-    };
     let mut stage_vao_builder = VaoBuilder::new();
     for x in 0..16 {
         for z in 0..16 {
-            add_block(&mut stage_vao_builder, x, 0, z, &cuboid_textures);
+            add_tall_block(&mut stage_vao_builder, x, 0, z);
             if (x + 1) % (z + 1) == 0 {
-                add_block(&mut stage_vao_builder, x, 1, z, &cuboid_textures);
+                add_short_block(&mut stage_vao_builder, x, 1, z);
             }
         }
     }
@@ -171,7 +209,7 @@ fn main() {
     /* ベクトルではなく色 */
     let material_specular = Vector3::new(0.2, 0.2, 0.2);
     let material_shininess: f32 = 0.1;
-    let light_direction = Vector3::new(1.0, 1.0, 0.0);
+    let light_direction = Vector3::new(0.2, 1.0, 0.2);
     /* ambient, diffuse, specular はベクトルではなく色 */
     let ambient = Vector3::new(0.3, 0.3, 0.3);
     let diffuse = Vector3::new(0.5, 0.5, 0.5);
@@ -247,11 +285,7 @@ fn main() {
 
         let mut player_vao_builder = VaoBuilder::new();
         player_vao_builder.attatch_program(&shader);
-        player_vao_builder.add_octahedron(
-            &player.pos,
-            0.25,
-            &TextureUV::of_atlas(0, 1, 64, 64, main_texture.width, main_texture.height),
-        );
+        player_vao_builder.add_octahedron(&player.pos, 0.25, &TextureUV::of_atlas(&TEX_PLAYER_TMP));
         let player_vao = player_vao_builder.build(gl);
 
         let (width, height) = game.window.drawable_size();
