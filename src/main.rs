@@ -237,19 +237,19 @@ fn main() {
                 player.pos_camera.x,
                 player.pos.x,
                 api.frames() as Time,
-                30 as TimeSpan,
+                12 as TimeSpan,
             );
             player.interpolation_y = Interpolation::new_cubic_ease_in_out(
                 player.pos_camera.y,
                 player.pos.y,
                 api.frames() as Time,
-                30 as TimeSpan,
+                12 as TimeSpan,
             );
             player.interpolation_z = Interpolation::new_cubic_ease_in_out(
                 player.pos_camera.z,
                 player.pos.z,
                 api.frames() as Time,
-                30 as TimeSpan,
+                12 as TimeSpan,
             );
         }
 

@@ -27,7 +27,7 @@ impl Api {
     }
 
     pub fn try_move(&mut self, direction: &Direction, player: &Player) -> Option<Point3<f32>> {
-        if self.frames % 30 == 0 {
+        if self.frames % 12 == 0 {
             // 本来はブロックの高さなどの判定も行うが、このコードでは無条件に移動可能
             match *direction {
                 Direction::Up => Some(Point3::<f32>::new(
