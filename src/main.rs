@@ -28,6 +28,7 @@ use reverie_engine as re;
 type TextureUV = re::texture::texture_atlas::TextureUV<TEX_W, TEX_H, TEX_ATLAS_W, TEX_ATLAS_H>;
 type VaoBuilder<'a> = re::vao::vao_builder::VaoBuilder<'a, TEX_W, TEX_H, TEX_ATLAS_W, TEX_ATLAS_H>;
 
+mod field;
 mod mock_server;
 mod player;
 mod types;
@@ -181,6 +182,7 @@ fn main() {
     let diffuse = Vector3::new(0.5, 0.5, 0.5);
     let specular = Vector3::new(0.2, 0.2, 0.2);
 
+    // フレームごとに起こっていること
     'main: loop {
         api.update();
 

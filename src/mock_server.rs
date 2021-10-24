@@ -55,6 +55,12 @@ impl Api {
             None
         }
     }
+
+    // 重なったところの数字を1増やす
+
+    pub fn numberImplement((&mut self, field: &Field) {
+
+    }
 }
 
 pub enum Direction {
