@@ -35,6 +35,7 @@ mod vao_ex;
 
 use crate::mock_server::Api;
 use crate::mock_server::Direction;
+use crate::types::BlockUnit;
 use crate::vao_ex::VaoBuilderEx;
 
 // 64x64ピクセルのテクスチャが4x4個並んでいる
@@ -251,7 +252,11 @@ fn main() {
 
         let mut player_vao_builder = VaoBuilder::new();
         player_vao_builder.attatch_program(&shader);
-        player_vao_builder.add_octahedron(&player.pos, 0.25, &TextureUV::of_atlas(&TEX_PLAYER_TMP));
+        player_vao_builder.add_octahedron(
+            &player.pos,
+            BlockUnit::from(0.5).into_render_value(),
+            &TextureUV::of_atlas(&TEX_PLAYER_TMP),
+        );
         let player_vao = player_vao_builder.build(gl);
 
         let (width, height) = game.window.drawable_size();
