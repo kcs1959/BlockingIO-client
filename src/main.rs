@@ -31,11 +31,13 @@ type CuboidTextures<'a> =
     re::vao::vao_builder::CuboidTextures<'a, TEX_W, TEX_H, TEX_ATLAS_W, TEX_ATLAS_H>;
 type VaoBuilder<'a> = re::vao::vao_builder::VaoBuilder<'a, TEX_W, TEX_H, TEX_ATLAS_W, TEX_ATLAS_H>;
 
+mod field;
 mod mock_server;
 mod player;
 mod types;
 mod vao_ex;
 
+use crate::field::Field;
 use crate::mock_server::Api;
 use crate::mock_server::Direction;
 use crate::types::BlockUnit;
@@ -158,11 +160,13 @@ fn main() {
     stage_vao_builder.add_floor(16, 16);
 
     // テスト用のステージ
-    for x in 0..16 {
-        for z in 0..16 {
-            stage_vao_builder.add_block_with_height(x, 1, z, (x % 4).min(z % 4));
+    let mut field = Field::<16_usize, 16_usize>::new();
+    for x in 0..16_usize {
+        for z in 0..16_usize {
+            field.set_height((x % 4).min(z % 4) as u32, x, z);
         }
     }
+    field.add_to(&mut stage_vao_builder);
 
     stage_vao_builder.attatch_program(&shader);
     let stage_vao = stage_vao_builder.build(gl);
