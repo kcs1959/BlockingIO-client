@@ -15,6 +15,7 @@ type Matrix4 = nalgebra::Matrix4<f32>;
 
 use re::gl;
 use re::gl::Gl;
+use re::interpolation::types::{Time, TimeSpan};
 use re::interpolation::Interpolation;
 use re::shader::Program;
 use re::shader::Shader;
@@ -22,7 +23,6 @@ use re::shader::Uniform;
 use re::shader::UniformVariables;
 use re::texture::image_manager::ImageManager;
 use re::texture::texture_atlas::TextureAtlasPos;
-use re::types::Time;
 use reverie_engine as re;
 
 type TextureUV = re::texture::texture_atlas::TextureUV<TEX_W, TEX_H, TEX_ATLAS_W, TEX_ATLAS_H>;
@@ -229,19 +229,19 @@ fn main() {
                 player.pos_camera.x,
                 player.pos.x,
                 api.frames() as Time,
-                30 as Time,
+                30 as TimeSpan,
             );
             player.interpolation_y = Interpolation::new_cubic_ease_in_out(
                 player.pos_camera.y,
                 player.pos.y,
                 api.frames() as Time,
-                30 as Time,
+                30 as TimeSpan,
             );
             player.interpolation_z = Interpolation::new_cubic_ease_in_out(
                 player.pos_camera.z,
                 player.pos.z,
                 api.frames() as Time,
-                30 as Time,
+                30 as TimeSpan,
             );
         }
 

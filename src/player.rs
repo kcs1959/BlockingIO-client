@@ -14,9 +14,9 @@ impl Player {
         Self {
             pos,
             pos_camera: pos,
-            interpolation_x: Interpolation::<f32>::new_lerp(0.0, 0.0, 0.0, 1.0),
-            interpolation_y: Interpolation::<f32>::new_lerp(0.0, 0.0, 0.0, 1.0),
-            interpolation_z: Interpolation::<f32>::new_lerp(0.0, 0.0, 0.0, 1.0),
+            interpolation_x: Interpolation::<f32>::new_lerp(0.0, 0.0, 0, 1),
+            interpolation_y: Interpolation::<f32>::new_lerp(0.0, 0.0, 0, 1),
+            interpolation_z: Interpolation::<f32>::new_lerp(0.0, 0.0, 0, 1),
         }
     }
 }
