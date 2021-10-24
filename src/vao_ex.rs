@@ -1,28 +1,8 @@
-type VaoBuilder<'a> = re::vao::vao_builder::VaoBuilder<
-    'a,
-    { crate::TEX_W },
-    { crate::TEX_H },
-    { crate::TEX_ATLAS_W },
-    { crate::TEX_ATLAS_H },
->;
-type CuboidTextures<'a> = re::vao::vao_builder::CuboidTextures<
-    'a,
-    { crate::TEX_W },
-    { crate::TEX_H },
-    { crate::TEX_ATLAS_W },
-    { crate::TEX_ATLAS_H },
->;
-type TextureUV = re::texture::texture_atlas::TextureUV<
-    { crate::TEX_W },
-    { crate::TEX_H },
-    { crate::TEX_ATLAS_W },
-    { crate::TEX_ATLAS_H },
->;
-use reverie_engine as re;
-
-type Point3 = nalgebra::Point3<f32>;
-
 use crate::types::BlockUnit;
+use crate::CuboidTextures;
+use crate::Point3;
+use crate::TextureUV;
+use crate::VaoBuilder;
 use crate::{TEX_BLOCK_DANGER, TEX_BLOCK_SAFE, TEX_BLOCK_TOP};
 
 // ReverieEngineのVaoBuilderに、Blocking.io特有の機能を追加するためのトレイト

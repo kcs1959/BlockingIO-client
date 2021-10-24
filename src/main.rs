@@ -12,6 +12,7 @@ use sdl2::VideoSubsystem;
 
 type Vector3 = nalgebra::Vector3<f32>;
 type Matrix4 = nalgebra::Matrix4<f32>;
+type Point3 = nalgebra::Point3<f32>;
 
 use re::gl;
 use re::gl::Gl;
@@ -26,6 +27,8 @@ use re::texture::texture_atlas::TextureAtlasPos;
 use reverie_engine as re;
 
 type TextureUV = re::texture::texture_atlas::TextureUV<TEX_W, TEX_H, TEX_ATLAS_W, TEX_ATLAS_H>;
+type CuboidTextures<'a> =
+    re::vao::vao_builder::CuboidTextures<'a, TEX_W, TEX_H, TEX_ATLAS_W, TEX_ATLAS_H>;
 type VaoBuilder<'a> = re::vao::vao_builder::VaoBuilder<'a, TEX_W, TEX_H, TEX_ATLAS_W, TEX_ATLAS_H>;
 
 mod mock_server;
