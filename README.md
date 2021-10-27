@@ -29,13 +29,9 @@
 > cargo build
 ```
 
-## macOS (未検証)
-多分 `gcc` が必要
-```
-> brew install sdl2
-> echo 'export LIBRARY_PATH="$LIBRARY_PATH:/usr/local/lib"' >> ~/.bash_profile
-> cargo build
-```
+## macOS
+
+**macOSはOpenGLのバージョンが古いのでサポートできません。** 代わりにWebGLに対応したい。
 
 # 実行
 ```
