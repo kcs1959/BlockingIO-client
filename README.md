@@ -1,5 +1,15 @@
 # BlockingIO-client
 
+# 実行
+
+1. <https://github.com/kcs1959/BlockingIO-api>をlocalhostで動かす。または[ここ](https://github.com/kcs1959/BlockingIO-client/blob/feature/socket-io/src/mock_server.rs#L23-L24)を書き換えてサーバーのアドレスを変更する
+
+2. ビルドする
+
+3. `cargo run`
+
+※ WSL2 + VcXsrv を使う場合は、Native opengl をオフに、Disable access control をオンにする。
+
 # ビルド方法
 
 ## Windows
@@ -32,10 +42,3 @@
 ## macOS
 
 **macOSはOpenGLのバージョンが古いのでサポートできません。** 代わりにWebGLに対応したい。
-
-# 実行
-```
-> cargo run
-```
-
-WSL2 + VcXsrv X Server を使う場合は、Native opengl をオフに、Disable access control をオンにする。
