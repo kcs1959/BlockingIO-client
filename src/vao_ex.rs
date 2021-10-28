@@ -1,4 +1,3 @@
-use crate::types::BlockUnit;
 use crate::CuboidTextures;
 use crate::Point3;
 use crate::TextureUV;
@@ -21,31 +20,17 @@ pub trait VaoBuilderEx {
 
 fn add_block(
     vao_builder: &mut VaoBuilder,
-    x: i32,
-    y: i32,
-    z: i32,
-    dx: BlockUnit,
-    dy: BlockUnit,
-    dz: BlockUnit,
+    x: f32,
+    y: f32,
+    z: f32,
+    dx: f32,
+    dy: f32,
+    dz: f32,
     textures: &CuboidTextures,
 ) {
-    let x: BlockUnit = x.into();
-    let y: BlockUnit = y.into();
-    let z: BlockUnit = z.into();
-    let dx: BlockUnit = dx.into();
-    let dy: BlockUnit = dy.into();
-    let dz: BlockUnit = dz.into();
     vao_builder.add_cuboid(
-        &Point3::new(
-            x.into_render_value(),
-            y.into_render_value(),
-            z.into_render_value(),
-        ),
-        &Point3::new(
-            (x + dx).into_render_value(),
-            (y + dy).into_render_value(),
-            (z + dz).into_render_value(),
-        ),
+        &Point3::new(x, y, z),
+        &Point3::new(x + dx, y + dy, z + dz),
         &textures,
     );
 }
@@ -62,7 +47,7 @@ impl<'a> VaoBuilderEx for VaoBuilder<'a> {
         };
         for x in 0..width as i32 {
             for z in 0..height as i32 {
-                add_block(self, x, 0, z, 1.0.into(), 1.0.into(), 1.0.into(), &textures);
+                add_block(self, x as f32, 0.0, z as f32, 1.0, 1.0, 1.0, &textures);
             }
         }
     }
@@ -87,8 +72,10 @@ impl<'a> VaoBuilderEx for VaoBuilder<'a> {
             east: &TextureUV::of_atlas(&TEX_BLOCK_DANGER),
         };
         // 1ブロックは立方体の半分なので高さを1/2にする
-        let height: BlockUnit = (height as f32 * 0.5).into();
-        add_block(self, x, y, z, 1.0.into(), height, 1.0.into(), &textures);
+        let height: f32 = height as f32 * 0.5;
+        add_block(
+            self, x as f32, y as f32, z as f32, 1.0, height, 1.0, &textures,
+        );
     }
 
     fn add_short_block(&mut self, x: i32, y: i32, z: i32) {
@@ -100,6 +87,6 @@ impl<'a> VaoBuilderEx for VaoBuilder<'a> {
             west: &TextureUV::of_atlas(&TEX_BLOCK_SAFE),
             east: &TextureUV::of_atlas(&TEX_BLOCK_SAFE),
         };
-        add_block(self, x, y, z, 1.0.into(), 0.5.into(), 1.0.into(), &textures);
+        add_block(self, x as f32, y as f32, z as f32, 1.0, 0.5, 1.0, &textures);
     }
 }
