@@ -17,6 +17,11 @@
 > cargo build
 ```
 
+## macOS
+
+**macOSはOpenGLのバージョンが古いのでサポートできません。** 代わりにWebGLに対応したい。
+
+
 ## Linux
 
 いずれの場合も `gcc` が必要です。
@@ -38,7 +43,3 @@
 > sudo pacman -S sdl2
 > cargo build
 ```
-
-## macOS
-
-**macOSはOpenGLのバージョンが古いのでサポートできません。** 代わりにWebGLに対応したい。
