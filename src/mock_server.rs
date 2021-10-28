@@ -2,16 +2,40 @@
 //! APIが完成したらhttpやwebsocketで通信するコードを書く
 
 use nalgebra::Point3;
+use rust_socketio::{Payload, Socket, SocketBuilder};
 
 use crate::player::Player;
 
 pub struct Api {
     frames: u64,
+    socket: Option<Socket>,
 }
 
 impl Api {
     pub fn new() -> Api {
-        Api { frames: 0 }
+        Api {
+            frames: 0,
+            socket: None,
+        }
+    }
+
+    pub fn connect(&mut self) -> Result<(), rust_socketio::error::Error> {
+        const URL: &str = "http://localhost:3000";
+        // const URL: &str = "http://13.114.119.94:3000";
+        self.socket = Some(
+            SocketBuilder::new(URL)
+                .on("error", |err, _| eprintln!("Error: {:#?}", err))
+                .on(event::ROOM_STATE, |payload, _socket| {
+                    println!("room-state event");
+                    print_payload(&payload);
+                })
+                .on(event::UPDATE_FIELD, |payload, _| {
+                    println!("update-field event");
+                    print_payload(&payload);
+                })
+                .connect()?,
+        );
+        Ok(())
     }
 
     pub fn update(&mut self) {
@@ -22,8 +46,14 @@ impl Api {
         self.frames
     }
 
-    pub fn join_room(&mut self, _id: &str) -> Player {
-        Player::new(Point3::<f32>::new(0.25, 0.75, 0.75))
+    pub fn join_room(&mut self, _id: &str) -> Result<Player, rust_socketio::error::Error> {
+        println!("emitting join-room event");
+        self.socket
+            .as_mut()
+            .unwrap()
+            .emit(event::JOIN_ROOM, serde_json::json!("{}"))?;
+        println!("emitted join-room event");
+        Ok(Player::new(Point3::<f32>::new(0.25, 0.75, 0.75)))
     }
 
     pub fn try_move(&mut self, direction: &Direction, player: &Player) -> Option<Point3<f32>> {
@@ -62,4 +92,23 @@ pub enum Direction {
     Down,
     Right,
     Left,
+}
+
+// https://github.com/kcs1959/BlockingIO-api/blob/main/src/routes/socketEvents.ts を写しただけ
+#[allow(dead_code)]
+mod event {
+    pub const JOIN_ROOM: &str = "join-room";
+    pub const ROOM_STATE: &str = "room-state";
+    pub const FIND_AVAILABLE_ROOM: &str = "find-available-room";
+    pub const UPDATE_FIELD: &str = "udpate-field"; // API側のタイポ
+    pub const TRY_MOVE: &str = "try-move";
+    pub const SETUP_UID: &str = "setup-uid";
+    pub const UPDATE_USER: &str = "on-update-user";
+}
+
+fn print_payload(payload: &Payload) {
+    match payload {
+        Payload::String(str) => println!("  Received: {}", str),
+        Payload::Binary(bin_data) => println!("  Received bytes: {:#?}", bin_data),
+    }
 }

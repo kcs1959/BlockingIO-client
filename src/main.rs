@@ -172,7 +172,8 @@ fn main() {
     let stage_vao = stage_vao_builder.build(gl);
 
     let mut api = Api::new();
-    let mut player = api.join_room("foo");
+    api.connect().expect("cannot connect");
+    let mut player = api.join_room("foo").expect("cannot join room");
 
     /* デバッグ用 */
     let depth_test = true;
