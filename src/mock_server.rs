@@ -53,7 +53,7 @@ impl Api {
             .unwrap()
             .emit(event::JOIN_ROOM, serde_json::json!("{}"))?;
         println!("emitted join-room event");
-        Ok(Player::new(Point3::<f32>::new(0.25, 0.75, 0.75)))
+        Ok(Player::new(Point3::<f32>::new(0.5, 1.5, 1.5)))
     }
 
     pub fn try_move(&mut self, direction: &Direction, player: &Player) -> Option<Point3<f32>> {
@@ -61,24 +61,24 @@ impl Api {
             // 本来はブロックの高さなどの判定も行うが、このコードでは無条件に移動可能
             match *direction {
                 Direction::Up => Some(Point3::<f32>::new(
-                    player.pos.x + 0.5,
+                    player.pos.x + 1.0,
                     player.pos.y,
                     player.pos.z,
                 )),
                 Direction::Down => Some(Point3::<f32>::new(
-                    player.pos.x - 0.5,
+                    player.pos.x - 1.0,
                     player.pos.y,
                     player.pos.z,
                 )),
                 Direction::Right => Some(Point3::<f32>::new(
                     player.pos.x,
                     player.pos.y,
-                    player.pos.z + 0.5,
+                    player.pos.z + 1.0,
                 )),
                 Direction::Left => Some(Point3::<f32>::new(
                     player.pos.x,
                     player.pos.y,
-                    player.pos.z - 0.5,
+                    player.pos.z - 1.0,
                 )),
             }
         } else {

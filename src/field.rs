@@ -19,7 +19,7 @@ impl<const X: usize, const Z: usize> Field<X, Z> {
     pub fn add_to(&self, vao_builder: &mut VaoBuilder) {
         for x in 0..X {
             for z in 0..Z {
-                vao_builder.add_block_with_height(x as i32, 1, z as i32, self.map[x][z] as i32);
+                vao_builder.add_block_with_height(x as i32, z as i32, self.map[x][z] as i32);
             }
         }
     }

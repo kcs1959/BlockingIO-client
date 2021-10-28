@@ -34,13 +34,11 @@ type VaoBuilder<'a> = re::vao::vao_builder::VaoBuilder<'a, TEX_W, TEX_H, TEX_ATL
 mod field;
 mod mock_server;
 mod player;
-mod types;
 mod vao_ex;
 
 use crate::field::Field;
 use crate::mock_server::Api;
 use crate::mock_server::Direction;
-use crate::types::BlockUnit;
 use crate::vao_ex::VaoBuilderEx;
 
 // 64x64ピクセルのテクスチャが4x4個並んでいる
@@ -260,11 +258,7 @@ fn main() {
 
         let mut player_vao_builder = VaoBuilder::new();
         player_vao_builder.attatch_program(&shader);
-        player_vao_builder.add_octahedron(
-            &player.pos,
-            BlockUnit::from(0.5).into_render_value(),
-            &TextureUV::of_atlas(&TEX_PLAYER_TMP),
-        );
+        player_vao_builder.add_octahedron(&player.pos, 0.5, &TextureUV::of_atlas(&TEX_PLAYER_TMP));
         let player_vao = player_vao_builder.build(gl);
 
         let (width, height) = game.window.drawable_size();
@@ -303,13 +297,14 @@ fn main() {
             gl.Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
 
-        let model_matrix = Matrix4::identity();
+        const SCALE: f32 = 0.5;
+        let model_matrix = Matrix4::identity().scale(SCALE);
         const CAM_HEIGHT: Vector3 = Vector3::new(0.0, 5.0, 0.0);
         const DOWN: Vector3 = Vector3::new(0.0, -1.0, 0.0);
         const X_POSITIVE: Vector3 = Vector3::new(1.0, 0.0, 0.0);
         let view_matrix = Matrix4::look_at_rh(
-            &(player.pos_camera + CAM_HEIGHT),
-            &(player.pos_camera + DOWN),
+            &(player.pos_camera * SCALE + CAM_HEIGHT),
+            &((player.pos_camera + DOWN) * SCALE),
             &X_POSITIVE,
         );
         let projection_matrix: Matrix4 = Matrix4::new_perspective(
