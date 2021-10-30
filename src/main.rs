@@ -31,12 +31,14 @@ type CuboidTextures<'a> =
     re::vao::vao_builder::CuboidTextures<'a, TEX_W, TEX_H, TEX_ATLAS_W, TEX_ATLAS_H>;
 type VaoBuilder<'a> = re::vao::vao_builder::VaoBuilder<'a, TEX_W, TEX_H, TEX_ATLAS_W, TEX_ATLAS_H>;
 
+mod camera;
 mod field;
 mod mock_server;
 mod player;
 mod socketio_encoding;
 mod vao_ex;
 
+use crate::camera::Camera;
 use crate::field::Field;
 use crate::mock_server::Api;
 use crate::mock_server::Direction;
@@ -173,6 +175,7 @@ fn main() {
     let mut api = Api::new();
     api.connect().expect("cannot connect");
     let mut player = api.join_room("foo").expect("cannot join room");
+    let mut camera = Camera::new(player.pos);
 
     /* デバッグ用 */
     let depth_test = true;
@@ -233,29 +236,29 @@ fn main() {
             }
         }
         if moved {
-            player.interpolation_x = Interpolation::new_cubic_ease_in_out(
-                player.pos_camera.x,
+            camera.interpolation_x = Interpolation::new_cubic_ease_in_out(
+                camera.pos.x,
                 player.pos.x,
                 api.frames() as Time,
                 12 as TimeSpan,
             );
-            player.interpolation_y = Interpolation::new_cubic_ease_in_out(
-                player.pos_camera.y,
+            camera.interpolation_y = Interpolation::new_cubic_ease_in_out(
+                camera.pos.y,
                 player.pos.y,
                 api.frames() as Time,
                 12 as TimeSpan,
             );
-            player.interpolation_z = Interpolation::new_cubic_ease_in_out(
-                player.pos_camera.z,
+            camera.interpolation_z = Interpolation::new_cubic_ease_in_out(
+                camera.pos.z,
                 player.pos.z,
                 api.frames() as Time,
                 12 as TimeSpan,
             );
         }
 
-        player.pos_camera.x = player.interpolation_x.value(api.frames() as Time);
-        player.pos_camera.y = player.interpolation_y.value(api.frames() as Time);
-        player.pos_camera.z = player.interpolation_z.value(api.frames() as Time);
+        camera.pos.x = camera.interpolation_x.value(api.frames() as Time);
+        camera.pos.y = camera.interpolation_y.value(api.frames() as Time);
+        camera.pos.z = camera.interpolation_z.value(api.frames() as Time);
 
         let mut player_vao_builder = VaoBuilder::new();
         player_vao_builder.attatch_program(&shader);
@@ -304,8 +307,8 @@ fn main() {
         const DOWN: Vector3 = Vector3::new(0.0, -1.0, 0.0);
         const X_POSITIVE: Vector3 = Vector3::new(1.0, 0.0, 0.0);
         let view_matrix = Matrix4::look_at_rh(
-            &(player.pos_camera * SCALE + CAM_HEIGHT),
-            &((player.pos_camera + DOWN) * SCALE),
+            &(camera.pos * SCALE + CAM_HEIGHT),
+            &((camera.pos + DOWN) * SCALE),
             &X_POSITIVE,
         );
         let projection_matrix: Matrix4 = Matrix4::new_perspective(
