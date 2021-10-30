@@ -1,4 +1,7 @@
+use std::collections::VecDeque;
 use std::path::Path;
+use std::sync::Arc;
+use std::sync::Mutex;
 
 use imgui_sdl2::ImguiSdl2;
 use sdl2::keyboard::KeyboardState;
@@ -157,13 +160,13 @@ fn main() {
     );
 
     let mut stage_vao_builder = VaoBuilder::new();
-    stage_vao_builder.add_floor(16, 16);
+    stage_vao_builder.add_floor(32, 32);
 
     // テスト用のステージ
-    let mut field = Field::<16_usize, 16_usize>::new();
-    for x in 0..16_usize {
-        for z in 0..16_usize {
-            field.set_height((x % 4).min(z % 4) as u32, x, z);
+    let mut field = Field::<32_usize, 32_usize>::new();
+    for x in 0..32_usize {
+        for z in 0..32_usize {
+            field.set_height((x % 2).min(z % 2) as u32, x, z);
         }
     }
     field.add_to(&mut stage_vao_builder);
@@ -172,7 +175,9 @@ fn main() {
     let stage_vao = stage_vao_builder.build(gl);
 
     let mut api = Api::new();
-    api.connect().expect("cannot connect");
+    let unhandled_events = Arc::new(Mutex::new(VecDeque::new()));
+    api.connect(Arc::clone(&unhandled_events))
+        .expect("cannot connect");
     let player = api.join_room("foo").expect("cannot join room");
     let mut camera = Camera::new(player.pos);
 
@@ -216,7 +221,8 @@ fn main() {
 
         let mut moved = false;
         // Socket.ioのイベントを処理
-        while let Some(event) = api.dequeue_event() {
+        let mut unhandled_events = unhandled_events.lock().unwrap();
+        while let Some(event) = unhandled_events.pop_front() {
             match event {
                 ApiEvent::UpdateField { players: players_ } => {
                     players = players_;

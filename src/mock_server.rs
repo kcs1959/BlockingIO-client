@@ -1,7 +1,10 @@
 //! モックAPI
 //! APIが完成したらhttpやwebsocketで通信するコードを書く
 
-use std::collections::VecDeque;
+use std::{
+    collections::VecDeque,
+    sync::{Arc, Mutex},
+};
 
 use nalgebra::Point3;
 use rust_socketio::{Payload, Socket, SocketBuilder};
@@ -10,18 +13,17 @@ use crate::{player::Player, socketio_encoding::ToUtf8String};
 
 pub struct Api {
     socket: Option<Socket>,
-    unhandled_events: VecDeque<ApiEvent>,
 }
 
 impl Api {
     pub fn new() -> Api {
-        Api {
-            socket: None,
-            unhandled_events: VecDeque::new(),
-        }
+        Api { socket: None }
     }
 
-    pub fn connect(&mut self) -> Result<(), rust_socketio::error::Error> {
+    pub fn connect(
+        &mut self,
+        unhandled_events: Arc<Mutex<VecDeque<ApiEvent>>>,
+    ) -> Result<(), rust_socketio::error::Error> {
         const URL: &str = "http://localhost:3000";
         // const URL: &str = "http://13.114.119.94:3000";
         self.socket = Some(
@@ -31,9 +33,28 @@ impl Api {
                     println!("room-state event");
                     print_payload(&payload);
                 })
-                .on(event::UPDATE_FIELD, |payload, _| {
+                .on(event::UPDATE_FIELD, move |payload, _| {
                     println!("update-field event");
-                    print_payload(&payload);
+                    let json =
+                        serde_json::from_slice::<serde_json::Value>(&payload.to_utf8_bytes())
+                            .expect("error parsing json (update-field event)");
+                    let mut players = Vec::new();
+                    for player_info in json["listOfPlayer"].as_array().unwrap() {
+                        let column = player_info["position"]["column"].as_i64().unwrap();
+                        let row = player_info["position"]["row"].as_i64().unwrap();
+                        let player = Player::new(nalgebra::Point3::<f32>::new(
+                            32.0 - row as f32 + 0.5,
+                            1.5,
+                            column as f32 + 0.5,
+                        ));
+
+                        players.push(player);
+                    }
+
+                    unhandled_events
+                        .lock()
+                        .unwrap()
+                        .push_back(ApiEvent::UpdateField { players });
                 })
                 .connect()?,
         );
@@ -41,13 +62,6 @@ impl Api {
     }
 
     pub fn update(&mut self) {}
-
-    /// 未処理のイベントのうち最初のものを削除して返す
-    ///
-    /// 未処理のイベントがなかったらNoneを返す
-    pub fn dequeue_event(&mut self) -> Option<ApiEvent> {
-        self.unhandled_events.pop_front()
-    }
 
     pub fn join_room(&mut self, _id: &str) -> Result<Player, rust_socketio::error::Error> {
         println!("emitting join-room event");
