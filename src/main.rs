@@ -34,6 +34,7 @@ type VaoBuilder<'a> = re::vao::vao_builder::VaoBuilder<'a, TEX_W, TEX_H, TEX_ATL
 mod field;
 mod mock_server;
 mod player;
+mod socketio_encoding;
 mod vao_ex;
 
 use crate::field::Field;

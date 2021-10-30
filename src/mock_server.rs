@@ -4,7 +4,7 @@
 use nalgebra::Point3;
 use rust_socketio::{Payload, Socket, SocketBuilder};
 
-use crate::player::Player;
+use crate::{player::Player, socketio_encoding::ToUtf8String};
 
 pub struct Api {
     frames: u64,
@@ -108,7 +108,15 @@ mod event {
 
 fn print_payload(payload: &Payload) {
     match payload {
-        Payload::String(str) => println!("  Received: {}", str),
+        Payload::String(str) => {
+            println!("  Received: {}", str);
+            let bytes = payload.to_utf8_bytes();
+            if let Ok(json) = serde_json::from_slice::<serde_json::Value>(&bytes) {
+                println!("  Json: {}", json);
+            } else {
+                println!("  Not a json");
+            }
+        }
         Payload::Binary(bin_data) => println!("  Received bytes: {:#?}", bin_data),
     }
 }
