@@ -7,16 +7,12 @@ use rust_socketio::{Payload, Socket, SocketBuilder};
 use crate::{player::Player, socketio_encoding::ToUtf8String};
 
 pub struct Api {
-    frames: u64,
     socket: Option<Socket>,
 }
 
 impl Api {
     pub fn new() -> Api {
-        Api {
-            frames: 0,
-            socket: None,
-        }
+        Api { socket: None }
     }
 
     pub fn connect(&mut self) -> Result<(), rust_socketio::error::Error> {
@@ -38,13 +34,7 @@ impl Api {
         Ok(())
     }
 
-    pub fn update(&mut self) {
-        self.frames += 1;
-    }
-
-    pub fn frames(&self) -> u64 {
-        self.frames
-    }
+    pub fn update(&mut self) {}
 
     pub fn join_room(&mut self, _id: &str) -> Result<Player, rust_socketio::error::Error> {
         println!("emitting join-room event");
@@ -56,8 +46,13 @@ impl Api {
         Ok(Player::new(Point3::<f32>::new(0.5, 1.5, 1.5)))
     }
 
-    pub fn try_move(&mut self, direction: &Direction, player: &Player) -> Option<Point3<f32>> {
-        if self.frames % 12 == 0 {
+    pub fn try_move(
+        &mut self,
+        direction: &Direction,
+        player: &Player,
+        frames: u64,
+    ) -> Option<Point3<f32>> {
+        if frames % 12 == 0 {
             // 本来はブロックの高さなどの判定も行うが、このコードでは無条件に移動可能
             match *direction {
                 Direction::Up => Some(Point3::<f32>::new(

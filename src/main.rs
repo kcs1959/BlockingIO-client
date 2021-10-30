@@ -192,7 +192,10 @@ fn main() {
     let diffuse = Vector3::new(0.5, 0.5, 0.5);
     let specular = Vector3::new(0.2, 0.2, 0.2);
 
+    // ゲーム開始から現在までのフレーム数。約60フレームで1秒
+    let mut frames: u64 = 0;
     'main: loop {
+        frames += 1;
         api.update();
 
         // イベントを処理
@@ -212,25 +215,25 @@ fn main() {
         let key_state = KeyboardState::new(&game.event_pump);
         let mut moved = false;
         if key_state.is_scancode_pressed(Scancode::W) {
-            if let Some(new_pos) = api.try_move(&Direction::Up, &player) {
+            if let Some(new_pos) = api.try_move(&Direction::Up, &player, frames) {
                 player.pos = new_pos;
                 moved = true;
             }
         }
         if key_state.is_scancode_pressed(Scancode::S) {
-            if let Some(new_pos) = api.try_move(&Direction::Down, &player) {
+            if let Some(new_pos) = api.try_move(&Direction::Down, &player, frames) {
                 player.pos = new_pos;
                 moved = true;
             }
         }
         if key_state.is_scancode_pressed(Scancode::D) {
-            if let Some(new_pos) = api.try_move(&Direction::Right, &player) {
+            if let Some(new_pos) = api.try_move(&Direction::Right, &player, frames) {
                 player.pos = new_pos;
                 moved = true;
             }
         }
         if key_state.is_scancode_pressed(Scancode::A) {
-            if let Some(new_pos) = api.try_move(&Direction::Left, &player) {
+            if let Some(new_pos) = api.try_move(&Direction::Left, &player, frames) {
                 player.pos = new_pos;
                 moved = true;
             }
@@ -239,26 +242,26 @@ fn main() {
             camera.interpolation_x = Interpolation::new_cubic_ease_in_out(
                 camera.pos.x,
                 player.pos.x,
-                api.frames() as Time,
+                frames as Time,
                 12 as TimeSpan,
             );
             camera.interpolation_y = Interpolation::new_cubic_ease_in_out(
                 camera.pos.y,
                 player.pos.y,
-                api.frames() as Time,
+                frames as Time,
                 12 as TimeSpan,
             );
             camera.interpolation_z = Interpolation::new_cubic_ease_in_out(
                 camera.pos.z,
                 player.pos.z,
-                api.frames() as Time,
+                frames as Time,
                 12 as TimeSpan,
             );
         }
 
-        camera.pos.x = camera.interpolation_x.value(api.frames() as Time);
-        camera.pos.y = camera.interpolation_y.value(api.frames() as Time);
-        camera.pos.z = camera.interpolation_z.value(api.frames() as Time);
+        camera.pos.x = camera.interpolation_x.value(frames as Time);
+        camera.pos.y = camera.interpolation_y.value(frames as Time);
+        camera.pos.z = camera.interpolation_z.value(frames as Time);
 
         let mut player_vao_builder = VaoBuilder::new();
         player_vao_builder.attatch_program(&shader);
