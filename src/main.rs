@@ -16,8 +16,6 @@ type Point3 = nalgebra::Point3<f32>;
 
 use re::gl;
 use re::gl::Gl;
-use re::interpolation::types::{Time, TimeSpan};
-use re::interpolation::Interpolation;
 use re::shader::Program;
 use re::shader::Shader;
 use re::shader::Uniform;
@@ -239,29 +237,10 @@ fn main() {
             }
         }
         if moved {
-            camera.interpolation_x = Interpolation::new_cubic_ease_in_out(
-                camera.pos.x,
-                player.pos.x,
-                frames as Time,
-                12 as TimeSpan,
-            );
-            camera.interpolation_y = Interpolation::new_cubic_ease_in_out(
-                camera.pos.y,
-                player.pos.y,
-                frames as Time,
-                12 as TimeSpan,
-            );
-            camera.interpolation_z = Interpolation::new_cubic_ease_in_out(
-                camera.pos.z,
-                player.pos.z,
-                frames as Time,
-                12 as TimeSpan,
-            );
+            camera.shade_to_new_position(player.pos, frames, 12);
         }
 
-        camera.pos.x = camera.interpolation_x.value(frames as Time);
-        camera.pos.y = camera.interpolation_y.value(frames as Time);
-        camera.pos.z = camera.interpolation_z.value(frames as Time);
+        camera.update_position(frames);
 
         let mut player_vao_builder = VaoBuilder::new();
         player_vao_builder.attatch_program(&shader);
@@ -310,8 +289,8 @@ fn main() {
         const DOWN: Vector3 = Vector3::new(0.0, -1.0, 0.0);
         const X_POSITIVE: Vector3 = Vector3::new(1.0, 0.0, 0.0);
         let view_matrix = Matrix4::look_at_rh(
-            &(camera.pos * SCALE + CAM_HEIGHT),
-            &((camera.pos + DOWN) * SCALE),
+            &(camera.pos() * SCALE + CAM_HEIGHT),
+            &((camera.pos() + DOWN) * SCALE),
             &X_POSITIVE,
         );
         let projection_matrix: Matrix4 = Matrix4::new_perspective(
