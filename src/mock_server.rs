@@ -1,6 +1,8 @@
 //! モックAPI
 //! APIが完成したらhttpやwebsocketで通信するコードを書く
 
+use std::collections::VecDeque;
+
 use nalgebra::Point3;
 use rust_socketio::{Payload, Socket, SocketBuilder};
 
@@ -8,11 +10,15 @@ use crate::{player::Player, socketio_encoding::ToUtf8String};
 
 pub struct Api {
     socket: Option<Socket>,
+    unhandled_events: VecDeque<ApiEvent>,
 }
 
 impl Api {
     pub fn new() -> Api {
-        Api { socket: None }
+        Api {
+            socket: None,
+            unhandled_events: VecDeque::new(),
+        }
     }
 
     pub fn connect(&mut self) -> Result<(), rust_socketio::error::Error> {
@@ -35,6 +41,13 @@ impl Api {
     }
 
     pub fn update(&mut self) {}
+
+    /// 未処理のイベントのうち最初のものを削除して返す
+    ///
+    /// 未処理のイベントがなかったらNoneを返す
+    pub fn dequeue_event(&mut self) -> Option<ApiEvent> {
+        self.unhandled_events.pop_front()
+    }
 
     pub fn join_room(&mut self, _id: &str) -> Result<Player, rust_socketio::error::Error> {
         println!("emitting join-room event");
@@ -87,6 +100,12 @@ pub enum Direction {
     Down,
     Right,
     Left,
+}
+
+pub enum ApiEvent {
+    JoinRoom,
+    UpdateRoomState,
+    UpdateField { players: Vec<Player> },
 }
 
 // https://github.com/kcs1959/BlockingIO-api/blob/main/src/routes/socketEvents.ts を写しただけ

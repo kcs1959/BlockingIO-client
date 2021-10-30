@@ -39,6 +39,7 @@ mod vao_ex;
 use crate::camera::Camera;
 use crate::field::Field;
 use crate::mock_server::Api;
+use crate::mock_server::ApiEvent;
 use crate::mock_server::Direction;
 use crate::vao_ex::VaoBuilderEx;
 
@@ -172,7 +173,7 @@ fn main() {
 
     let mut api = Api::new();
     api.connect().expect("cannot connect");
-    let mut player = api.join_room("foo").expect("cannot join room");
+    let player = api.join_room("foo").expect("cannot join room");
     let mut camera = Camera::new(player.pos);
 
     /* デバッグ用 */
@@ -192,11 +193,14 @@ fn main() {
 
     // ゲーム開始から現在までのフレーム数。約60フレームで1秒
     let mut frames: u64 = 0;
+
+    let mut players = vec![player];
+
     'main: loop {
         frames += 1;
         api.update();
 
-        // イベントを処理
+        // OSのイベントを処理
         for event in game.event_pump.poll_iter() {
             game.imgui_sdl2.handle_event(&mut game.imgui, &event);
             if game.imgui_sdl2.ignore_event(&event) {
@@ -210,41 +214,59 @@ fn main() {
             }
         }
 
-        let key_state = KeyboardState::new(&game.event_pump);
         let mut moved = false;
+        // Socket.ioのイベントを処理
+        while let Some(event) = api.dequeue_event() {
+            match event {
+                ApiEvent::UpdateField { players: players_ } => {
+                    players = players_;
+                    moved = true;
+                }
+                ApiEvent::JoinRoom => todo!(),
+                ApiEvent::UpdateRoomState => todo!(),
+            }
+        }
+
+        let key_state = KeyboardState::new(&game.event_pump);
         if key_state.is_scancode_pressed(Scancode::W) {
-            if let Some(new_pos) = api.try_move(&Direction::Up, &player, frames) {
-                player.pos = new_pos;
+            if let Some(new_pos) = api.try_move(&Direction::Up, &players[0], frames) {
+                players[0].pos = new_pos;
                 moved = true;
             }
         }
         if key_state.is_scancode_pressed(Scancode::S) {
-            if let Some(new_pos) = api.try_move(&Direction::Down, &player, frames) {
-                player.pos = new_pos;
+            if let Some(new_pos) = api.try_move(&Direction::Down, &players[0], frames) {
+                players[0].pos = new_pos;
                 moved = true;
             }
         }
         if key_state.is_scancode_pressed(Scancode::D) {
-            if let Some(new_pos) = api.try_move(&Direction::Right, &player, frames) {
-                player.pos = new_pos;
+            if let Some(new_pos) = api.try_move(&Direction::Right, &players[0], frames) {
+                players[0].pos = new_pos;
                 moved = true;
             }
         }
         if key_state.is_scancode_pressed(Scancode::A) {
-            if let Some(new_pos) = api.try_move(&Direction::Left, &player, frames) {
-                player.pos = new_pos;
+            if let Some(new_pos) = api.try_move(&Direction::Left, &players[0], frames) {
+                players[0].pos = new_pos;
                 moved = true;
             }
         }
         if moved {
-            camera.shade_to_new_position(player.pos, frames, 12);
+            camera.shade_to_new_position(players[0].pos, frames, 12);
         }
 
         camera.update_position(frames);
 
         let mut player_vao_builder = VaoBuilder::new();
         player_vao_builder.attatch_program(&shader);
-        player_vao_builder.add_octahedron(&player.pos, 0.5, &TextureUV::of_atlas(&TEX_PLAYER_TMP));
+        for player in &players {
+            player_vao_builder.add_octahedron(
+                &player.pos,
+                0.5,
+                &TextureUV::of_atlas(&TEX_PLAYER_TMP),
+            );
+        }
         let player_vao = player_vao_builder.build(gl);
 
         let (width, height) = game.window.drawable_size();
@@ -303,7 +325,7 @@ fn main() {
             uniforms.add(c_str!("uAlpha"), Float(alpha));
             uniforms.add(
                 c_str!("uViewPosition"),
-                TripleFloat(player.pos.x, player.pos.y, player.pos.z),
+                TripleFloat(players[0].pos.x, players[0].pos.y, players[0].pos.z),
             );
             uniforms.add(c_str!("uMaterial.specular"), Vector3(&material_specular));
             uniforms.add(c_str!("uMaterial.shininess"), Float(material_shininess));
