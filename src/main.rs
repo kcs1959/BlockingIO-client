@@ -285,14 +285,7 @@ fn main() {
 
         const SCALE: f32 = 0.5;
         let model_matrix = Matrix4::identity().scale(SCALE);
-        const CAM_HEIGHT: Vector3 = Vector3::new(0.0, 5.0, 0.0);
-        const DOWN: Vector3 = Vector3::new(0.0, -1.0, 0.0);
-        const X_POSITIVE: Vector3 = Vector3::new(1.0, 0.0, 0.0);
-        let view_matrix = Matrix4::look_at_rh(
-            &(camera.pos() * SCALE + CAM_HEIGHT),
-            &((camera.pos() + DOWN) * SCALE),
-            &X_POSITIVE,
-        );
+        let view_matrix = camera.view_matrix(SCALE);
         let projection_matrix: Matrix4 = Matrix4::new_perspective(
             width as f32 / height as f32,
             std::f32::consts::PI / 4.0f32,
