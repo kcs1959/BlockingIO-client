@@ -27,6 +27,9 @@ use re::texture::image_manager::ImageManager;
 use re::texture::texture_atlas::TextureAtlasPos;
 use reverie_engine as re;
 
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::TcpListener;
+
 type TextureUV = re::texture::texture_atlas::TextureUV<TEX_W, TEX_H, TEX_ATLAS_W, TEX_ATLAS_H>;
 type CuboidTextures<'a> =
     re::vao::vao_builder::CuboidTextures<'a, TEX_W, TEX_H, TEX_ATLAS_W, TEX_ATLAS_H>;
@@ -139,6 +142,7 @@ impl Game {
 }
 
 fn main() {
+    let mut socketio_thread = tokio::runtime::Runtime::new().unwrap();
     let mut game = Game::init();
     let gl = &game.gl;
     let vert_shader = Shader::from_vert_file(gl.clone(), "rsc/shader/shader.vs").unwrap();
@@ -221,8 +225,11 @@ fn main() {
 
         let mut moved = false;
         // Socket.ioのイベントを処理
-        let mut unhandled_events = unhandled_events.lock().unwrap();
-        while let Some(event) = unhandled_events.pop_front() {
+        let front_event = socketio_thread.block_on(async {
+            let mut unhandled_events = unhandled_events.lock().unwrap();
+            unhandled_events.pop_front()
+        });
+        if let Some(event) = front_event {
             match event {
                 ApiEvent::UpdateField { players: players_ } => {
                     players = players_;
