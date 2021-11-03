@@ -58,6 +58,8 @@ const TEX_PLAYER_TMP: TextureAtlasPos = TextureAtlasPos::new(0, 1);
 const TEX_BLOCK_DANGER: TextureAtlasPos = TextureAtlasPos::new(0, 2);
 const TEX_BLOCK_SAFE: TextureAtlasPos = TextureAtlasPos::new(0, 3);
 
+const FIELD_SIZE: usize = 32;
+
 struct Game {
     _sdl: Sdl,
     _video_subsystem: VideoSubsystem,
@@ -162,12 +164,12 @@ fn main() {
     );
 
     let mut stage_vao_builder = VaoBuilder::new();
-    stage_vao_builder.add_floor(32, 32);
+    stage_vao_builder.add_floor(FIELD_SIZE as u32, FIELD_SIZE as u32);
 
     // テスト用のステージ
-    let mut field = Field::<32_usize, 32_usize>::new();
-    for x in 0..32_usize {
-        for z in 0..32_usize {
+    let mut field = Field::<FIELD_SIZE, FIELD_SIZE>::new();
+    for x in 0..FIELD_SIZE {
+        for z in 0..FIELD_SIZE {
             field.set_height((x % 2).min(z % 2) as u32, x, z);
         }
     }

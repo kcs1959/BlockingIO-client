@@ -9,7 +9,9 @@ use std::{
 use nalgebra::Point3;
 use rust_socketio::{Payload, Socket, SocketBuilder};
 
-use crate::{api::json::UpdateFieldJson, player::Player, socketio_encoding::ToUtf8String};
+use crate::{
+    api::json::UpdateFieldJson, player::Player, socketio_encoding::ToUtf8String, FIELD_SIZE,
+};
 
 pub struct Api {
     socket: Option<Socket>,
@@ -40,7 +42,7 @@ impl Api {
                     let mut players = Vec::new();
                     for player in &json.player_list {
                         let player = Player::new(nalgebra::Point3::<f32>::new(
-                            32.0 - player.position.row + 0.5,
+                            FIELD_SIZE as f32 - player.position.row + 0.5,
                             1.5,
                             player.position.column + 0.5,
                         ));
