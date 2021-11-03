@@ -10,7 +10,10 @@ use nalgebra::Point3;
 use rust_socketio::{Payload, Socket, SocketBuilder};
 
 use crate::{
-    api::json::UpdateFieldJson, player::Player, socketio_encoding::ToUtf8String, FIELD_SIZE,
+    api::json::{SquareJson, UpdateFieldJson},
+    player::Player,
+    socketio_encoding::ToUtf8String,
+    FIELD_SIZE,
 };
 
 pub struct Api {
@@ -39,6 +42,7 @@ impl Api {
                     println!("update-field event");
                     let json: UpdateFieldJson = serde_json::from_slice(&payload.to_utf8_bytes())
                         .expect("parsing erro (update-field event)");
+
                     let mut players = Vec::new();
                     for player in &json.player_list {
                         let player = Player::new(nalgebra::Point3::<f32>::new(
@@ -49,10 +53,13 @@ impl Api {
                         players.push(player);
                     }
 
+                    assert_eq!(json.battle_field.length, FIELD_SIZE as i32);
+                    let field = make_height_array(json.battle_field.squares);
+
                     unhandled_events
                         .lock()
                         .unwrap()
-                        .push_back(ApiEvent::UpdateField { players });
+                        .push_back(ApiEvent::UpdateField { players, field });
                 })
                 .connect()?,
         );
@@ -117,7 +124,10 @@ pub enum Direction {
 pub enum ApiEvent {
     JoinRoom,
     UpdateRoomState,
-    UpdateField { players: Vec<Player> },
+    UpdateField {
+        players: Vec<Player>,
+        field: [[u32; FIELD_SIZE]; FIELD_SIZE],
+    },
 }
 
 // https://github.com/kcs1959/BlockingIO-api/blob/main/src/routes/socketEvents.ts を写しただけ
@@ -130,6 +140,13 @@ mod event {
     pub const TRY_MOVE: &str = "try-move";
     pub const SETUP_UID: &str = "setup-uid";
     pub const UPDATE_USER: &str = "on-update-user";
+}
+
+fn make_height_array(
+    squares: [[SquareJson; FIELD_SIZE]; FIELD_SIZE],
+) -> [[u32; FIELD_SIZE]; FIELD_SIZE] {
+    use array_macro::array;
+    array![i => array![j => squares[i][j].height; FIELD_SIZE]; FIELD_SIZE]
 }
 
 fn print_payload(payload: &Payload) {

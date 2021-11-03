@@ -229,7 +229,10 @@ fn main() {
             let mut lock = unhandled_events.lock().unwrap();
             while let Some(event) = lock.pop_front() {
                 match event {
-                    ApiEvent::UpdateField { players: players_ } => {
+                    ApiEvent::UpdateField {
+                        players: players_,
+                        field,
+                    } => {
                         players = players_;
                         moved = true;
                     }

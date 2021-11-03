@@ -1,5 +1,7 @@
 use serde::Deserialize;
 
+use crate::FIELD_SIZE;
+
 #[derive(Deserialize)]
 pub struct PositionJson {
     pub row: f32,
@@ -45,13 +47,13 @@ pub struct TaggerJson {
 
 #[derive(Deserialize)]
 pub struct SquareJson {
-    pub height: i32,
+    pub height: u32,
 }
 
 #[derive(Deserialize)]
 pub struct BattleFieldJson {
     pub length: i32,
-    pub squares: Vec<Vec<SquareJson>>,
+    pub squares: [[SquareJson; FIELD_SIZE]; FIELD_SIZE],
 }
 
 #[derive(Deserialize)]
