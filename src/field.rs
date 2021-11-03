@@ -1,6 +1,12 @@
 use crate::{vao_ex::VaoBuilderEx, VaoBuilder};
 
 /// 各地点のブロックの高さを保持する構造体
+///
+/// ^ X軸  \
+/// |  \
+/// |  \
+/// |  \
+/// +---------> Z軸
 pub struct Field<const X: usize, const Z: usize> {
     map: [[u32; X]; Z],
 }
