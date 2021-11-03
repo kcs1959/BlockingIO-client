@@ -239,29 +239,18 @@ fn main() {
 
         let key_state = KeyboardState::new(&game.event_pump);
         if key_state.is_scancode_pressed(Scancode::W) {
-            if let Some(new_pos) = api.try_move(&DirectionJson::Up, &players[0], frames) {
-                players[0].pos = new_pos;
-                moved = true;
-            }
+            api.try_move(&DirectionJson::Up);
         }
         if key_state.is_scancode_pressed(Scancode::S) {
-            if let Some(new_pos) = api.try_move(&DirectionJson::Down, &players[0], frames) {
-                players[0].pos = new_pos;
-                moved = true;
-            }
+            api.try_move(&DirectionJson::Down);
         }
         if key_state.is_scancode_pressed(Scancode::D) {
-            if let Some(new_pos) = api.try_move(&DirectionJson::Right, &players[0], frames) {
-                players[0].pos = new_pos;
-                moved = true;
-            }
+            api.try_move(&DirectionJson::Right);
         }
         if key_state.is_scancode_pressed(Scancode::A) {
-            if let Some(new_pos) = api.try_move(&DirectionJson::Left, &players[0], frames) {
-                players[0].pos = new_pos;
-                moved = true;
-            }
+            api.try_move(&DirectionJson::Left);
         }
+
         if moved {
             camera.shade_to_new_position(players[0].pos, frames, 12);
         }

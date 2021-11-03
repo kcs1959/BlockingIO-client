@@ -78,19 +78,13 @@ impl Api {
         Ok(Player::new(Point3::<f32>::new(0.5, 1.5, 1.5)))
     }
 
-    pub fn try_move(
-        &mut self,
-        direction: &DirectionJson,
-        player: &Player,
-        frames: u64,
-    ) -> Option<Point3<f32>> {
+    pub fn try_move(&mut self, direction: &DirectionJson) {
         println!("try-move");
         self.socket
             .as_mut()
             .expect("no server")
             .emit(event::TRY_MOVE, serde_json::to_string(&direction).unwrap())
             .unwrap();
-        None
     }
 }
 
