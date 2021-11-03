@@ -225,20 +225,19 @@ fn main() {
 
         let mut moved = false;
         // Socket.ioのイベントを処理
-        let front_event = socketio_thread.block_on(async {
-            let mut unhandled_events = unhandled_events.lock().unwrap();
-            unhandled_events.pop_front()
-        });
-        if let Some(event) = front_event {
-            match event {
-                ApiEvent::UpdateField { players: players_ } => {
-                    players = players_;
-                    moved = true;
+        socketio_thread.block_on(async {
+            let mut lock = unhandled_events.lock().unwrap();
+            while let Some(event) = lock.pop_front() {
+                match event {
+                    ApiEvent::UpdateField { players: players_ } => {
+                        players = players_;
+                        moved = true;
+                    }
+                    ApiEvent::JoinRoom => todo!(),
+                    ApiEvent::UpdateRoomState => todo!(),
                 }
-                ApiEvent::JoinRoom => todo!(),
-                ApiEvent::UpdateRoomState => todo!(),
             }
-        }
+        });
 
         let key_state = KeyboardState::new(&game.event_pump);
         if key_state.is_scancode_pressed(Scancode::W) {
