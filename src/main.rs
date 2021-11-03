@@ -164,7 +164,7 @@ fn main() {
     );
 
     let mut stage_vao_builder = VaoBuilder::new();
-    stage_vao_builder.add_floor(FIELD_SIZE as u32, FIELD_SIZE as u32);
+    stage_vao_builder.add_floor(FIELD_SIZE, FIELD_SIZE);
 
     // テスト用のステージ
     let mut field = Field::<FIELD_SIZE, FIELD_SIZE>::new();
