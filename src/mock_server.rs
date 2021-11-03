@@ -146,7 +146,7 @@ fn make_height_array(
     squares: [[SquareJson; FIELD_SIZE]; FIELD_SIZE],
 ) -> [[u32; FIELD_SIZE]; FIELD_SIZE] {
     use array_macro::array;
-    array![i => array![j => squares[i][j].height; FIELD_SIZE]; FIELD_SIZE]
+    array![x => array![z => squares[FIELD_SIZE - 1 - x][z].height; FIELD_SIZE]; FIELD_SIZE]
 }
 
 fn print_payload(payload: &Payload) {
