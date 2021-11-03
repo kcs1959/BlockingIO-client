@@ -40,11 +40,11 @@ mod player;
 mod socketio_encoding;
 mod vao_ex;
 
+use crate::api::json::DirectionJson;
 use crate::camera::Camera;
 use crate::field::Field;
 use crate::mock_server::Api;
 use crate::mock_server::ApiEvent;
-use crate::mock_server::Direction;
 use crate::vao_ex::VaoBuilderEx;
 
 // 64x64ピクセルのテクスチャが4x4個並んでいる
@@ -239,25 +239,25 @@ fn main() {
 
         let key_state = KeyboardState::new(&game.event_pump);
         if key_state.is_scancode_pressed(Scancode::W) {
-            if let Some(new_pos) = api.try_move(&Direction::Up, &players[0], frames) {
+            if let Some(new_pos) = api.try_move(&DirectionJson::Up, &players[0], frames) {
                 players[0].pos = new_pos;
                 moved = true;
             }
         }
         if key_state.is_scancode_pressed(Scancode::S) {
-            if let Some(new_pos) = api.try_move(&Direction::Down, &players[0], frames) {
+            if let Some(new_pos) = api.try_move(&DirectionJson::Down, &players[0], frames) {
                 players[0].pos = new_pos;
                 moved = true;
             }
         }
         if key_state.is_scancode_pressed(Scancode::D) {
-            if let Some(new_pos) = api.try_move(&Direction::Right, &players[0], frames) {
+            if let Some(new_pos) = api.try_move(&DirectionJson::Right, &players[0], frames) {
                 players[0].pos = new_pos;
                 moved = true;
             }
         }
         if key_state.is_scancode_pressed(Scancode::A) {
-            if let Some(new_pos) = api.try_move(&Direction::Left, &players[0], frames) {
+            if let Some(new_pos) = api.try_move(&DirectionJson::Left, &players[0], frames) {
                 players[0].pos = new_pos;
                 moved = true;
             }

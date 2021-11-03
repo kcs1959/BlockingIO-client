@@ -10,7 +10,7 @@ use nalgebra::Point3;
 use rust_socketio::{Payload, Socket, SocketBuilder};
 
 use crate::{
-    api::json::{SquareJson, UpdateFieldJson},
+    api::json::{DirectionJson, SquareJson, UpdateFieldJson},
     player::Player,
     socketio_encoding::ToUtf8String,
     FIELD_SIZE,
@@ -80,45 +80,18 @@ impl Api {
 
     pub fn try_move(
         &mut self,
-        direction: &Direction,
+        direction: &DirectionJson,
         player: &Player,
         frames: u64,
     ) -> Option<Point3<f32>> {
-        if frames % 12 == 0 {
-            // 本来はブロックの高さなどの判定も行うが、このコードでは無条件に移動可能
-            match *direction {
-                Direction::Up => Some(Point3::<f32>::new(
-                    player.pos.x + 1.0,
-                    player.pos.y,
-                    player.pos.z,
-                )),
-                Direction::Down => Some(Point3::<f32>::new(
-                    player.pos.x - 1.0,
-                    player.pos.y,
-                    player.pos.z,
-                )),
-                Direction::Right => Some(Point3::<f32>::new(
-                    player.pos.x,
-                    player.pos.y,
-                    player.pos.z + 1.0,
-                )),
-                Direction::Left => Some(Point3::<f32>::new(
-                    player.pos.x,
-                    player.pos.y,
-                    player.pos.z - 1.0,
-                )),
-            }
-        } else {
-            None
-        }
+        println!("try-move");
+        self.socket
+            .as_mut()
+            .expect("no server")
+            .emit(event::TRY_MOVE, serde_json::to_string(&direction).unwrap())
+            .unwrap();
+        None
     }
-}
-
-pub enum Direction {
-    Up,
-    Down,
-    Right,
-    Left,
 }
 
 pub enum ApiEvent {

@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::FIELD_SIZE;
 
@@ -8,7 +8,7 @@ pub struct PositionJson {
     pub column: f32,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub enum DirectionJson {
     #[serde(rename = "down")]
     Down,
