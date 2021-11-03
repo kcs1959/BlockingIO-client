@@ -82,3 +82,34 @@ pub struct UpdateFieldJson {
     pub tagger: TaggerJson,
     pub state: GameStatusJson,
 }
+
+#[derive(Deserialize)]
+#[allow(non_snake_case)]
+pub struct UserJson {
+    pub name: String,
+    pub point: i32,
+    pub uid: String,
+    pub socketId: String,
+    pub requestingToStartGame: bool,
+}
+
+#[derive(Deserialize)]
+#[allow(non_camel_case_types)]
+pub enum RoomStateJson {
+    Empty,
+    Opening,
+    Fulfilled,
+    notJoining,
+}
+
+#[derive(Deserialize)]
+#[allow(non_snake_case)]
+/// `status`が`notJoining`の場合は`status`以外のパラメータを持たない
+pub struct RoomStateEventJson {
+    pub maxMember: Option<i32>,
+    pub assignedUsers: Vec<UserJson>,
+    pub roomId: Option<String>,
+    pub roomname: Option<String>,
+    pub currentGame: Option<serde_json::Value>, // 型の詳細が不明
+    pub state: RoomStateJson,
+}
