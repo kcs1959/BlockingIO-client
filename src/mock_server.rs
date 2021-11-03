@@ -9,7 +9,7 @@ use std::{
 use nalgebra::Point3;
 use rust_socketio::{Payload, Socket, SocketBuilder};
 
-use crate::{player::Player, socketio_encoding::ToUtf8String};
+use crate::{api::json::UpdateFieldJson, player::Player, socketio_encoding::ToUtf8String};
 
 pub struct Api {
     socket: Option<Socket>,
@@ -35,19 +35,15 @@ impl Api {
                 })
                 .on(event::UPDATE_FIELD, move |payload, _| {
                     println!("update-field event");
-                    let json =
-                        serde_json::from_slice::<serde_json::Value>(&payload.to_utf8_bytes())
-                            .expect("error parsing json (update-field event)");
+                    let json: UpdateFieldJson = serde_json::from_slice(&payload.to_utf8_bytes())
+                        .expect("parsing erro (update-field event)");
                     let mut players = Vec::new();
-                    for player_info in json["listOfPlayer"].as_array().unwrap() {
-                        let column = player_info["position"]["column"].as_i64().unwrap();
-                        let row = player_info["position"]["row"].as_i64().unwrap();
+                    for player in &json.player_list {
                         let player = Player::new(nalgebra::Point3::<f32>::new(
-                            32.0 - row as f32 + 0.5,
+                            32.0 - player.position.row + 0.5,
                             1.5,
-                            column as f32 + 0.5,
+                            player.position.column + 0.5,
                         ));
-
                         players.push(player);
                     }
 
