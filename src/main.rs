@@ -163,20 +163,7 @@ fn main() {
         "テクスチャのサイズが想定と違います"
     );
 
-    let mut stage_vao_builder = VaoBuilder::new();
-    stage_vao_builder.add_floor(FIELD_SIZE, FIELD_SIZE);
-
-    // テスト用のステージ
     let mut field = Field::<FIELD_SIZE, FIELD_SIZE>::new();
-    for x in 0..FIELD_SIZE {
-        for z in 0..FIELD_SIZE {
-            field.set_height((x % 2).min(z % 2) as u32, x, z);
-        }
-    }
-    field.add_to(&mut stage_vao_builder);
-
-    stage_vao_builder.attatch_program(&shader);
-    let stage_vao = stage_vao_builder.build(gl);
 
     let mut api = Api::new();
     let unhandled_events = Arc::new(Mutex::new(VecDeque::new()));
@@ -272,6 +259,12 @@ fn main() {
         }
 
         camera.update_position(frames);
+
+        let mut stage_vao_builder = VaoBuilder::new();
+        stage_vao_builder.attatch_program(&shader);
+        stage_vao_builder.add_floor(FIELD_SIZE, FIELD_SIZE);
+        field.add_to(&mut stage_vao_builder);
+        let stage_vao = stage_vao_builder.build(gl);
 
         let mut player_vao_builder = VaoBuilder::new();
         player_vao_builder.attatch_program(&shader);
