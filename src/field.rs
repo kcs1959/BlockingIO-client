@@ -16,6 +16,10 @@ impl<const X: usize, const Z: usize> Field<X, Z> {
         self.map[x][z] = height;
     }
 
+    pub fn update(&mut self, height_map: [[u32; X]; Z]) {
+        self.map = height_map;
+    }
+
     pub fn add_to(&self, vao_builder: &mut VaoBuilder) {
         for x in 0..X {
             for z in 0..Z {

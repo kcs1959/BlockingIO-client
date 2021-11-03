@@ -165,6 +165,10 @@ fn main() {
 
     let mut field = Field::<FIELD_SIZE, FIELD_SIZE>::new();
 
+    let mut stage_vao_builder = VaoBuilder::new();
+    stage_vao_builder.attatch_program(&shader);
+    let mut stage_vao = stage_vao_builder.build(gl);
+
     let mut api = Api::new();
     let unhandled_events = Arc::new(Mutex::new(VecDeque::new()));
     api.connect(Arc::clone(&unhandled_events))
@@ -211,6 +215,7 @@ fn main() {
         }
 
         let mut moved = false;
+        let mut field_updated = false;
         // Socket.ioのイベントを処理
         socketio_thread.block_on(async {
             let mut lock = unhandled_events.lock().unwrap();
@@ -218,10 +223,13 @@ fn main() {
                 match event {
                     ApiEvent::UpdateField {
                         players: players_,
-                        field,
+                        field: field_,
                     } => {
                         players = players_;
                         moved = true;
+
+                        field.update(field_);
+                        field_updated = true;
                     }
                     ApiEvent::JoinRoom => todo!(),
                     ApiEvent::UpdateRoomState => todo!(),
@@ -260,11 +268,13 @@ fn main() {
 
         camera.update_position(frames);
 
-        let mut stage_vao_builder = VaoBuilder::new();
-        stage_vao_builder.attatch_program(&shader);
-        stage_vao_builder.add_floor(FIELD_SIZE, FIELD_SIZE);
-        field.add_to(&mut stage_vao_builder);
-        let stage_vao = stage_vao_builder.build(gl);
+        if field_updated {
+            stage_vao_builder = VaoBuilder::new();
+            stage_vao_builder.attatch_program(&shader);
+            stage_vao_builder.add_floor(FIELD_SIZE, FIELD_SIZE);
+            field.add_to(&mut stage_vao_builder);
+            stage_vao = stage_vao_builder.build(gl);
+        }
 
         let mut player_vao_builder = VaoBuilder::new();
         player_vao_builder.attatch_program(&shader);
