@@ -1,4 +1,7 @@
+use std::collections::VecDeque;
 use std::path::Path;
+use std::sync::Arc;
+use std::sync::Mutex;
 
 use imgui_sdl2::ImguiSdl2;
 use sdl2::keyboard::KeyboardState;
@@ -16,8 +19,6 @@ type Point3 = nalgebra::Point3<f32>;
 
 use re::gl;
 use re::gl::Gl;
-use re::interpolation::types::{Time, TimeSpan};
-use re::interpolation::Interpolation;
 use re::shader::Program;
 use re::shader::Shader;
 use re::shader::Uniform;
@@ -31,14 +32,21 @@ type CuboidTextures<'a> =
     re::vao::vao_builder::CuboidTextures<'a, TEX_W, TEX_H, TEX_ATLAS_W, TEX_ATLAS_H>;
 type VaoBuilder<'a> = re::vao::vao_builder::VaoBuilder<'a, TEX_W, TEX_H, TEX_ATLAS_W, TEX_ATLAS_H>;
 
+mod api;
+mod camera;
 mod field;
 mod mock_server;
 mod player;
+mod setting_storage;
+mod socketio_encoding;
 mod vao_ex;
 
+use crate::api::json::DirectionJson;
+use crate::camera::Camera;
 use crate::field::Field;
 use crate::mock_server::Api;
-use crate::mock_server::Direction;
+use crate::mock_server::ApiEvent;
+use crate::setting_storage::Setting;
 use crate::vao_ex::VaoBuilderEx;
 
 // 64x64ピクセルのテクスチャが4x4個並んでいる
@@ -51,6 +59,8 @@ const TEX_BLOCK_TOP: TextureAtlasPos = TextureAtlasPos::new(0, 0);
 const TEX_PLAYER_TMP: TextureAtlasPos = TextureAtlasPos::new(0, 1);
 const TEX_BLOCK_DANGER: TextureAtlasPos = TextureAtlasPos::new(0, 2);
 const TEX_BLOCK_SAFE: TextureAtlasPos = TextureAtlasPos::new(0, 3);
+
+const FIELD_SIZE: usize = 32;
 
 struct Game {
     _sdl: Sdl,
@@ -134,12 +144,15 @@ impl Game {
 }
 
 fn main() {
+    let socketio_thread = tokio::runtime::Runtime::new().unwrap();
     let mut game = Game::init();
     let gl = &game.gl;
     let vert_shader = Shader::from_vert_file(gl.clone(), "rsc/shader/shader.vs").unwrap();
     let frag_shader = Shader::from_frag_file(gl.clone(), "rsc/shader/shader.fs").unwrap();
     let shader = Program::from_shaders(gl.clone(), &[vert_shader, frag_shader]).unwrap();
     println!("OK: shader program");
+
+    let setting = Setting::load().expect("設定ファイルの読み込みに失敗");
 
     let main_texture = game
         .image_manager
@@ -154,23 +167,18 @@ fn main() {
         "テクスチャのサイズが想定と違います"
     );
 
+    let mut field = Field::<FIELD_SIZE, FIELD_SIZE>::new();
+
     let mut stage_vao_builder = VaoBuilder::new();
-    stage_vao_builder.add_floor(16, 16);
-
-    // テスト用のステージ
-    let mut field = Field::<16_usize, 16_usize>::new();
-    for x in 0..16_usize {
-        for z in 0..16_usize {
-            field.set_height((x % 4).min(z % 4) as u32, x, z);
-        }
-    }
-    field.add_to(&mut stage_vao_builder);
-
     stage_vao_builder.attatch_program(&shader);
-    let stage_vao = stage_vao_builder.build(gl);
+    let mut stage_vao = stage_vao_builder.build(gl);
 
     let mut api = Api::new();
-    let mut player = api.join_room("foo");
+    let unhandled_events = Arc::new(Mutex::new(VecDeque::new()));
+    api.connect(Arc::clone(&unhandled_events))
+        .expect("cannot connect");
+    let player = api.join_room("foo").expect("cannot join room");
+    let mut camera = Camera::new(player.pos);
 
     /* デバッグ用 */
     let depth_test = true;
@@ -187,10 +195,16 @@ fn main() {
     let diffuse = Vector3::new(0.5, 0.5, 0.5);
     let specular = Vector3::new(0.2, 0.2, 0.2);
 
+    // ゲーム開始から現在までのフレーム数。約60フレームで1秒
+    let mut frames: u64 = 0;
+
+    let mut players = vec![player];
+
     'main: loop {
+        frames += 1;
         api.update();
 
-        // イベントを処理
+        // OSのイベントを処理
         for event in game.event_pump.poll_iter() {
             game.imgui_sdl2.handle_event(&mut game.imgui, &event);
             if game.imgui_sdl2.ignore_event(&event) {
@@ -199,65 +213,74 @@ fn main() {
 
             use sdl2::event::Event;
             match event {
-                Event::Quit { .. } => break 'main,
+                Event::Quit { .. } => {
+                    setting.save().expect("設定ファイルの保存に失敗");
+                    break 'main;
+                }
                 _ => {}
             }
         }
 
-        let key_state = KeyboardState::new(&game.event_pump);
         let mut moved = false;
-        if key_state.is_scancode_pressed(Scancode::W) {
-            if let Some(new_pos) = api.try_move(&Direction::Up, &player) {
-                player.pos = new_pos;
-                moved = true;
+        let mut field_updated = false;
+        // Socket.ioのイベントを処理
+        socketio_thread.block_on(async {
+            let mut lock = unhandled_events.lock().unwrap();
+            while let Some(event) = lock.pop_front() {
+                match event {
+                    ApiEvent::UpdateField {
+                        players: players_,
+                        field: field_,
+                    } => {
+                        players = players_;
+                        moved = true;
+
+                        field.update(field_);
+                        field_updated = true;
+                    }
+                    ApiEvent::JoinRoom => todo!(),
+                    ApiEvent::UpdateRoomState => todo!(),
+                }
             }
+        });
+
+        let key_state = KeyboardState::new(&game.event_pump);
+        if key_state.is_scancode_pressed(Scancode::W) {
+            api.try_move(&DirectionJson::Up);
         }
         if key_state.is_scancode_pressed(Scancode::S) {
-            if let Some(new_pos) = api.try_move(&Direction::Down, &player) {
-                player.pos = new_pos;
-                moved = true;
-            }
+            api.try_move(&DirectionJson::Down);
         }
         if key_state.is_scancode_pressed(Scancode::D) {
-            if let Some(new_pos) = api.try_move(&Direction::Right, &player) {
-                player.pos = new_pos;
-                moved = true;
-            }
+            api.try_move(&DirectionJson::Right);
         }
         if key_state.is_scancode_pressed(Scancode::A) {
-            if let Some(new_pos) = api.try_move(&Direction::Left, &player) {
-                player.pos = new_pos;
-                moved = true;
-            }
-        }
-        if moved {
-            player.interpolation_x = Interpolation::new_cubic_ease_in_out(
-                player.pos_camera.x,
-                player.pos.x,
-                api.frames() as Time,
-                12 as TimeSpan,
-            );
-            player.interpolation_y = Interpolation::new_cubic_ease_in_out(
-                player.pos_camera.y,
-                player.pos.y,
-                api.frames() as Time,
-                12 as TimeSpan,
-            );
-            player.interpolation_z = Interpolation::new_cubic_ease_in_out(
-                player.pos_camera.z,
-                player.pos.z,
-                api.frames() as Time,
-                12 as TimeSpan,
-            );
+            api.try_move(&DirectionJson::Left);
         }
 
-        player.pos_camera.x = player.interpolation_x.value(api.frames() as Time);
-        player.pos_camera.y = player.interpolation_y.value(api.frames() as Time);
-        player.pos_camera.z = player.interpolation_z.value(api.frames() as Time);
+        if moved {
+            camera.shade_to_new_position(players[0].pos, frames, 12);
+        }
+
+        camera.update_position(frames);
+
+        if field_updated {
+            stage_vao_builder = VaoBuilder::new();
+            stage_vao_builder.attatch_program(&shader);
+            stage_vao_builder.add_floor(FIELD_SIZE, FIELD_SIZE);
+            field.add_to(&mut stage_vao_builder);
+            stage_vao = stage_vao_builder.build(gl);
+        }
 
         let mut player_vao_builder = VaoBuilder::new();
         player_vao_builder.attatch_program(&shader);
-        player_vao_builder.add_octahedron(&player.pos, 0.5, &TextureUV::of_atlas(&TEX_PLAYER_TMP));
+        for player in &players {
+            player_vao_builder.add_octahedron(
+                &player.pos,
+                0.5,
+                &TextureUV::of_atlas(&TEX_PLAYER_TMP),
+            );
+        }
         let player_vao = player_vao_builder.build(gl);
 
         let (width, height) = game.window.drawable_size();
@@ -298,14 +321,7 @@ fn main() {
 
         const SCALE: f32 = 0.5;
         let model_matrix = Matrix4::identity().scale(SCALE);
-        const CAM_HEIGHT: Vector3 = Vector3::new(0.0, 5.0, 0.0);
-        const DOWN: Vector3 = Vector3::new(0.0, -1.0, 0.0);
-        const X_POSITIVE: Vector3 = Vector3::new(1.0, 0.0, 0.0);
-        let view_matrix = Matrix4::look_at_rh(
-            &(player.pos_camera * SCALE + CAM_HEIGHT),
-            &((player.pos_camera + DOWN) * SCALE),
-            &X_POSITIVE,
-        );
+        let view_matrix = camera.view_matrix(SCALE);
         let projection_matrix: Matrix4 = Matrix4::new_perspective(
             width as f32 / height as f32,
             std::f32::consts::PI / 4.0f32,
@@ -323,7 +339,7 @@ fn main() {
             uniforms.add(c_str!("uAlpha"), Float(alpha));
             uniforms.add(
                 c_str!("uViewPosition"),
-                TripleFloat(player.pos.x, player.pos.y, player.pos.z),
+                TripleFloat(players[0].pos.x, players[0].pos.y, players[0].pos.z),
             );
             uniforms.add(c_str!("uMaterial.specular"), Vector3(&material_specular));
             uniforms.add(c_str!("uMaterial.shininess"), Float(material_shininess));
