@@ -37,6 +37,7 @@ mod camera;
 mod field;
 mod mock_server;
 mod player;
+mod setting_storage;
 mod socketio_encoding;
 mod vao_ex;
 
@@ -45,6 +46,7 @@ use crate::camera::Camera;
 use crate::field::Field;
 use crate::mock_server::Api;
 use crate::mock_server::ApiEvent;
+use crate::setting_storage::Setting;
 use crate::vao_ex::VaoBuilderEx;
 
 // 64x64ピクセルのテクスチャが4x4個並んでいる
@@ -150,6 +152,8 @@ fn main() {
     let shader = Program::from_shaders(gl.clone(), &[vert_shader, frag_shader]).unwrap();
     println!("OK: shader program");
 
+    let setting = Setting::load().expect("設定ファイルの読み込みに失敗");
+
     let main_texture = game
         .image_manager
         .load_image(Path::new("rsc/textures/atlas/main.png"), "atlas/main", true)
@@ -209,7 +213,10 @@ fn main() {
 
             use sdl2::event::Event;
             match event {
-                Event::Quit { .. } => break 'main,
+                Event::Quit { .. } => {
+                    setting.save().expect("設定ファイルの保存に失敗");
+                    break 'main;
+                }
                 _ => {}
             }
         }
