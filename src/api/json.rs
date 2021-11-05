@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::FIELD_SIZE;
 
@@ -112,4 +113,9 @@ pub struct RoomStateEventJson {
     pub roomname: Option<String>,
     pub currentGame: Option<serde_json::Value>, // 型の詳細が不明
     pub state: RoomStateJson,
+}
+
+#[derive(Serialize)]
+pub struct SetupUidJson {
+    pub user_id: Uuid,
 }
