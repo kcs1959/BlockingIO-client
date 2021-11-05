@@ -29,8 +29,11 @@ impl Api {
 
     pub fn connect(
         &mut self,
-        unhandled_events: Arc<Mutex<VecDeque<ApiEvent>>>,
+        unhandled_events: &Arc<Mutex<VecDeque<ApiEvent>>>,
     ) -> Result<(), rust_socketio::error::Error> {
+        let queue_update_user = Arc::clone(unhandled_events);
+        let queue_update_field = Arc::clone(unhandled_events);
+
         const URL: &str = "http://localhost:3000";
         // const URL: &str = "http://13.114.119.94:3000";
         self.socket = Some(
@@ -44,7 +47,7 @@ impl Api {
                         uid: json.uid,
                         name: json.name,
                     };
-                    unhandled_events.lock().unwrap().push_back(event);
+                    queue_update_user.lock().unwrap().push_back(event);
                 })
                 .on(event::ROOM_STATE, |payload, _socket| {
                     println!("room-state event");
@@ -68,7 +71,7 @@ impl Api {
                     assert_eq!(json.battle_field.length, FIELD_SIZE as i32);
                     let field = make_height_array(json.battle_field.squares);
 
-                    unhandled_events
+                    queue_update_field
                         .lock()
                         .unwrap()
                         .push_back(ApiEvent::UpdateField { players, field });
