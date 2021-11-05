@@ -29,10 +29,10 @@ impl Api {
 
     pub fn connect(
         &mut self,
-        unhandled_events: &Arc<Mutex<VecDeque<ApiEvent>>>,
+        queue: &Arc<Mutex<VecDeque<ApiEvent>>>,
     ) -> Result<(), rust_socketio::error::Error> {
-        let queue_update_user = Arc::clone(unhandled_events);
-        let queue_update_field = Arc::clone(unhandled_events);
+        let queue_update_user = Arc::clone(queue);
+        let queue_update_field = Arc::clone(queue);
 
         const URL: &str = "http://localhost:3000";
         // const URL: &str = "http://13.114.119.94:3000";
