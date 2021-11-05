@@ -177,6 +177,7 @@ fn main() {
     let unhandled_events = Arc::new(Mutex::new(VecDeque::new()));
     api.connect(Arc::clone(&unhandled_events))
         .expect("cannot connect");
+    api.setup_uid(setting.uuid).expect("cannot setup uid");
     let player = api.join_room("foo").expect("cannot join room");
     let mut camera = Camera::new(player.pos);
 

@@ -3,14 +3,16 @@
 
 use std::{
     collections::VecDeque,
+    error::Error,
     sync::{Arc, Mutex},
 };
 
 use nalgebra::Point3;
 use rust_socketio::{Payload, Socket, SocketBuilder};
+use uuid::Uuid;
 
 use crate::{
-    api::json::{DirectionJson, SquareJson, UpdateFieldJson},
+    api::json::{DirectionJson, SetupUidJson, SquareJson, UpdateFieldJson},
     player::Player,
     socketio_encoding::ToUtf8String,
     FIELD_SIZE,
@@ -63,6 +65,15 @@ impl Api {
                 })
                 .connect()?,
         );
+        Ok(())
+    }
+
+    pub fn setup_uid(&mut self, uid: Uuid) -> Result<(), Box<dyn Error>> {
+        println!("setup-uid");
+        self.socket.as_mut().unwrap().emit(
+            event::SETUP_UID,
+            serde_json::to_string(&SetupUidJson { user_id: uid })?,
+        )?;
         Ok(())
     }
 
