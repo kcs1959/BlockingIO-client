@@ -21,6 +21,10 @@ impl Camera {
         }
     }
 
+    pub fn pos(&self) -> &na::Point3<f32> {
+        &self.pos
+    }
+
     /// 現在の場所から指定した場所へ、フレーム数`shade_frames`で滑らかに移動するように設定する
     ///  - `current_frames` - ゲーム開始からの総フレーム数
     pub fn shade_to_new_position(

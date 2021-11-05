@@ -4,6 +4,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 use imgui_sdl2::ImguiSdl2;
+use player::Player;
 use sdl2::keyboard::KeyboardState;
 use sdl2::keyboard::Scancode;
 use sdl2::video::GLContext;
@@ -26,6 +27,7 @@ use re::shader::UniformVariables;
 use re::texture::image_manager::ImageManager;
 use re::texture::texture_atlas::TextureAtlasPos;
 use reverie_engine as re;
+use uuid::Uuid;
 
 type TextureUV = re::texture::texture_atlas::TextureUV<TEX_W, TEX_H, TEX_ATLAS_W, TEX_ATLAS_H>;
 type CuboidTextures<'a> =
@@ -178,6 +180,7 @@ fn main() {
     api.connect(&unhandled_events).expect("cannot connect");
     api.setup_uid(setting.uuid).expect("cannot setup uid");
     api.join_room("foo").expect("cannot join room");
+    let mut own_player;
     let mut camera = Camera::new(Point3::new(0.0, 0.0, 0.0));
 
     let mut user_id = setting.uuid;
@@ -266,7 +269,12 @@ fn main() {
         }
 
         if moved {
-            camera.shade_to_new_position(players[0].pos, frames, 12);
+            own_player = find_own_player(&players, user_id);
+            if let Some(own_player) = own_player {
+                camera.shade_to_new_position(own_player.pos, frames, 12);
+            } else {
+                // TODO: 自機がいないときのカメラの場所
+            }
         }
 
         camera.update_position(frames);
@@ -346,7 +354,7 @@ fn main() {
             uniforms.add(c_str!("uAlpha"), Float(alpha));
             uniforms.add(
                 c_str!("uViewPosition"),
-                TripleFloat(players[0].pos.x, players[0].pos.y, players[0].pos.z),
+                TripleFloat(camera.pos().x, camera.pos().y, camera.pos().z),
             );
             uniforms.add(c_str!("uMaterial.specular"), Vector3(&material_specular));
             uniforms.add(c_str!("uMaterial.shininess"), Float(material_shininess));
@@ -368,4 +376,10 @@ fn main() {
 
         std::thread::sleep(std::time::Duration::new(0, 1_000_000_000u32 / 60)); // 60FPS
     }
+}
+
+/// 自機を見つける
+/// `players`の要素数は2程度
+fn find_own_player(players: &Vec<Player>, uid: Uuid) -> Option<&Player> {
+    players.iter().find(|player| player.uid == uid)
 }
