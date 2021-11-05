@@ -273,11 +273,7 @@ fn main() {
 
         let mut player_vao_builder = VaoBuilder::new();
         for player in &players {
-            player_vao_builder.add_octahedron(
-                &player.pos,
-                0.5,
-                &TextureUV::of_atlas(&TEX_PLAYER_TMP),
-            );
+            player_vao_builder.add_octahedron(&player.pos, 0.5, &TextureUV::of_atlas(&TEX_PLAYER_TMP));
         }
         let player_vao = player_vao_builder.build(gl, &vao_config);
 
