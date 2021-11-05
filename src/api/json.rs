@@ -34,7 +34,7 @@ pub struct PlayerJson {
     pub position: PositionJson,
     pub direction: DirectionJson,
     pub point: i32,
-    pub uid: String,
+    pub uid: Uuid,
     pub name: String,
     pub status: PlayerStatusJson,
 }
@@ -89,7 +89,7 @@ pub struct UpdateFieldJson {
 pub struct UserJson {
     pub name: String,
     pub point: i32,
-    pub uid: String,
+    pub uid: Uuid,
     pub socketId: String,
     pub requestingToStartGame: bool,
 }
