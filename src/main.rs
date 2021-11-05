@@ -227,7 +227,6 @@ fn main() {
             }
         }
 
-        let mut moved = false;
         let mut field_updated = false;
         // Socket.ioのイベントを処理
         socketio_thread.block_on(async {
@@ -239,7 +238,6 @@ fn main() {
                         field: field_,
                     } => {
                         players = players_;
-                        moved = true;
 
                         field.update(field_);
                         field_updated = true;
@@ -268,7 +266,7 @@ fn main() {
             api.try_move(&DirectionJson::Left);
         }
 
-        if moved {
+        if field_updated {
             own_player = find_own_player(&players, user_id);
             if let Some(own_player) = own_player {
                 camera.shade_to_new_position(own_player.pos, frames, 12);
