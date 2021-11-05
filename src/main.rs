@@ -291,33 +291,6 @@ fn main() {
         let (width, height) = game.window.drawable_size();
 
         unsafe {
-            if depth_test {
-                gl.Enable(gl::DEPTH_TEST);
-            } else {
-                gl.Disable(gl::DEPTH_TEST);
-            }
-
-            if blend {
-                gl.Enable(gl::BLEND);
-                gl.BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
-            } else {
-                gl.Disable(gl::BLEND);
-            }
-
-            if wireframe {
-                gl.PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
-            } else {
-                gl.PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
-            }
-
-            if culling {
-                gl.Enable(gl::CULL_FACE);
-            } else {
-                gl.Disable(gl::CULL_FACE);
-            }
-        }
-
-        unsafe {
             gl.Viewport(0, 0, width as i32, height as i32);
 
             gl.ClearColor(1.0, 1.0, 1.0, 1.0);
@@ -341,17 +314,10 @@ fn main() {
             uniforms.add(c_str!("uModel"), Matrix4(&model_matrix));
             uniforms.add(c_str!("uView"), Matrix4(&view_matrix));
             uniforms.add(c_str!("uProjection"), Matrix4(&projection_matrix));
-            uniforms.add(c_str!("uAlpha"), Float(alpha));
             uniforms.add(
                 c_str!("uViewPosition"),
                 TripleFloat(camera.pos().x, camera.pos().y, camera.pos().z),
             );
-            uniforms.add(c_str!("uMaterial.specular"), Vector3(&material_specular));
-            uniforms.add(c_str!("uMaterial.shininess"), Float(material_shininess));
-            uniforms.add(c_str!("uLight.direction"), Vector3(&light_direction));
-            uniforms.add(c_str!("uLight.ambient"), Vector3(&ambient));
-            uniforms.add(c_str!("uLight.diffuse"), Vector3(&diffuse));
-            uniforms.add(c_str!("uLight.specular"), Vector3(&specular));
             uniforms
         };
 
