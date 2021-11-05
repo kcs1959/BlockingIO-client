@@ -240,16 +240,16 @@ fn main() {
         });
 
         let key_state = KeyboardState::new(&game.event_pump);
-        if key_state.is_scancode_pressed(Scancode::W) {
+        if key_state.is_scancode_pressed(Scancode::W) || key_state.is_scancode_pressed(Scancode::Up) {
             api.try_move(&DirectionJson::Up);
         }
-        if key_state.is_scancode_pressed(Scancode::S) {
+        if key_state.is_scancode_pressed(Scancode::S) || key_state.is_scancode_pressed(Scancode::Down) {
             api.try_move(&DirectionJson::Down);
         }
-        if key_state.is_scancode_pressed(Scancode::D) {
+        if key_state.is_scancode_pressed(Scancode::D) || key_state.is_scancode_pressed(Scancode::Right) {
             api.try_move(&DirectionJson::Right);
         }
-        if key_state.is_scancode_pressed(Scancode::A) {
+        if key_state.is_scancode_pressed(Scancode::A) || key_state.is_scancode_pressed(Scancode::Left) {
             api.try_move(&DirectionJson::Left);
         }
 
