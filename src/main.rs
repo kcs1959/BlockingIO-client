@@ -22,6 +22,7 @@ use re::shader::Uniform;
 use re::shader::UniformVariables;
 use re::texture::image_manager::ImageManager;
 use re::texture::texture_atlas::TextureAtlasPos;
+use re::vao::vao_config::VaoConfigBuilder;
 use uuid::Uuid;
 
 mod api;
@@ -161,11 +162,20 @@ fn main() {
         "テクスチャのサイズが想定と違います"
     );
 
+    let vao_config = VaoConfigBuilder::new(&shader)
+        .texture(&main_texture)
+        .material_specular(Vector3::new(0.2, 0.2, 0.2))
+        .material_shininess(0.1_f32)
+        .light_direction(Vector3::new(0.2, 1.0, 0.2))
+        .ambient(Vector3::new(0.3, 0.3, 0.3))
+        .diffuse(Vector3::new(0.5, 0.5, 0.5))
+        .specular(Vector3::new(0.2, 0.2, 0.2))
+        .build();
+
     let mut field = Field::<FIELD_SIZE, FIELD_SIZE>::new();
 
     let mut stage_vao_builder = VaoBuilder::new();
-    stage_vao_builder.attatch_program(&shader);
-    let mut stage_vao = stage_vao_builder.build(gl);
+    let mut stage_vao = stage_vao_builder.build(gl, &vao_config);
 
     let mut api = Api::new();
     let unhandled_events = Arc::new(Mutex::new(VecDeque::new()));
@@ -177,21 +187,6 @@ fn main() {
 
     let mut user_id = setting.uuid;
     let mut user_name: String = "".to_string();
-
-    /* デバッグ用 */
-    let depth_test = true;
-    let blend = true;
-    let wireframe = false;
-    let culling = true;
-    let alpha: f32 = 1.0;
-    /* ベクトルではなく色 */
-    let material_specular = Vector3::new(0.2, 0.2, 0.2);
-    let material_shininess: f32 = 0.1;
-    let light_direction = Vector3::new(0.2, 1.0, 0.2);
-    /* ambient, diffuse, specular はベクトルではなく色 */
-    let ambient = Vector3::new(0.3, 0.3, 0.3);
-    let diffuse = Vector3::new(0.5, 0.5, 0.5);
-    let specular = Vector3::new(0.2, 0.2, 0.2);
 
     // ゲーム開始から現在までのフレーム数。約60フレームで1秒
     let mut frames: u64 = 0;
@@ -271,14 +266,12 @@ fn main() {
 
         if field_updated {
             stage_vao_builder = VaoBuilder::new();
-            stage_vao_builder.attatch_program(&shader);
             stage_vao_builder.add_floor(FIELD_SIZE, FIELD_SIZE);
             field.add_to(&mut stage_vao_builder);
-            stage_vao = stage_vao_builder.build(gl);
+            stage_vao = stage_vao_builder.build(gl, &vao_config);
         }
 
         let mut player_vao_builder = VaoBuilder::new();
-        player_vao_builder.attatch_program(&shader);
         for player in &players {
             player_vao_builder.add_octahedron(
                 &player.pos,
@@ -286,7 +279,7 @@ fn main() {
                 &TextureUV::of_atlas(&TEX_PLAYER_TMP),
             );
         }
-        let player_vao = player_vao_builder.build(gl);
+        let player_vao = player_vao_builder.build(gl, &vao_config);
 
         let (width, height) = game.window.drawable_size();
 
@@ -321,10 +314,8 @@ fn main() {
             uniforms
         };
 
-        unsafe {
-            stage_vao.draw_triangles(&uniforms);
-            player_vao.draw_triangles(&uniforms);
-        }
+        stage_vao.draw_triangles(&uniforms);
+        player_vao.draw_triangles(&uniforms);
 
         game.window.gl_swap_window();
 
