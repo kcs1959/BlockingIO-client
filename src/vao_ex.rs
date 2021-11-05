@@ -32,7 +32,7 @@ fn add_block(
     );
 }
 
-impl<'a> VaoBuilderEx for VaoBuilder<'a> {
+impl VaoBuilderEx for VaoBuilder {
     fn add_floor(&mut self, width: usize, height: usize) {
         let textures = CuboidTextures {
             top: &TextureUV::of_atlas(&TEX_BLOCK_TOP),
