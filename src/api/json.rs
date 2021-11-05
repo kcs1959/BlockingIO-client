@@ -119,3 +119,13 @@ pub struct RoomStateEventJson {
 pub struct SetupUidJson {
     pub user_id: Uuid,
 }
+
+#[derive(Deserialize)]
+#[allow(non_snake_case)]
+pub struct OnUpdateUserJson {
+    pub name: String,
+    pub point: i32,
+    pub uid: Uuid,
+    pub socketId: String,
+    pub requestingToStartGame: bool,
+}
