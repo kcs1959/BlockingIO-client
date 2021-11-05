@@ -1,7 +1,4 @@
-use crate::CuboidTextures;
-use crate::Point3;
-use crate::TextureUV;
-use crate::VaoBuilder;
+use crate::types::*;
 use crate::{TEX_BLOCK_DANGER, TEX_BLOCK_SAFE, TEX_BLOCK_TOP};
 
 // ReverieEngineのVaoBuilderに、Blocking.io特有の機能を追加するためのトレイト
@@ -35,7 +32,7 @@ fn add_block(
     );
 }
 
-impl<'a> VaoBuilderEx for VaoBuilder<'a> {
+impl VaoBuilderEx for VaoBuilder {
     fn add_floor(&mut self, width: usize, height: usize) {
         let textures = CuboidTextures {
             top: &TextureUV::of_atlas(&TEX_BLOCK_TOP),

@@ -3,16 +3,17 @@
 
 use std::{
     collections::VecDeque,
+    error::Error,
     sync::{Arc, Mutex},
 };
 
-use nalgebra::Point3;
 use rust_socketio::{Payload, Socket, SocketBuilder};
+use uuid::Uuid;
 
 use crate::{
-    api::json::{DirectionJson, SquareJson, UpdateFieldJson},
+    api::json::{DirectionJson, OnUpdateUserJson, SetupUidJson, SquareJson, UpdateFieldJson},
     player::Player,
-    socketio_encoding::ToUtf8String,
+    types::*,
     FIELD_SIZE,
 };
 
@@ -27,13 +28,26 @@ impl Api {
 
     pub fn connect(
         &mut self,
-        unhandled_events: Arc<Mutex<VecDeque<ApiEvent>>>,
+        queue: &Arc<Mutex<VecDeque<ApiEvent>>>,
     ) -> Result<(), rust_socketio::error::Error> {
+        let queue_update_user = Arc::clone(queue);
+        let queue_update_field = Arc::clone(queue);
+
         const URL: &str = "http://localhost:3000";
         // const URL: &str = "http://13.114.119.94:3000";
         self.socket = Some(
             SocketBuilder::new(URL)
                 .on("error", |err, _| eprintln!("Error: {:#?}", err))
+                .on(event::UPDATE_USER, move |payload, _| {
+                    println!("on-update-user event");
+                    let json: OnUpdateUserJson = serde_json::from_slice(&payload.to_utf8_bytes())
+                        .expect("parsing error (on-update-user)");
+                    let event = ApiEvent::UpdateUser {
+                        uid: json.uid,
+                        name: json.name,
+                    };
+                    queue_update_user.lock().unwrap().push_back(event);
+                })
                 .on(event::ROOM_STATE, |payload, _socket| {
                     println!("room-state event");
                     print_payload(&payload);
@@ -45,18 +59,22 @@ impl Api {
 
                     let mut players = Vec::new();
                     for player in &json.player_list {
-                        let player = Player::new(nalgebra::Point3::<f32>::new(
-                            (FIELD_SIZE - 1) as f32 - player.position.row + 0.5,
-                            1.5,
-                            player.position.column + 0.5,
-                        ));
+                        let player = Player::new(
+                            Point3::new(
+                                (FIELD_SIZE - 1) as f32 - player.position.row + 0.5,
+                                1.5,
+                                player.position.column + 0.5,
+                            ),
+                            player.uid,
+                            player.name.clone(),
+                        );
                         players.push(player);
                     }
 
                     assert_eq!(json.battle_field.length, FIELD_SIZE as i32);
                     let field = make_height_array(json.battle_field.squares);
 
-                    unhandled_events
+                    queue_update_field
                         .lock()
                         .unwrap()
                         .push_back(ApiEvent::UpdateField { players, field });
@@ -66,16 +84,25 @@ impl Api {
         Ok(())
     }
 
+    pub fn setup_uid(&mut self, uid: Uuid) -> Result<(), Box<dyn Error>> {
+        println!("setup-uid");
+        self.socket.as_mut().unwrap().emit(
+            event::SETUP_UID,
+            serde_json::to_string(&SetupUidJson { user_id: uid })?,
+        )?;
+        Ok(())
+    }
+
     pub fn update(&mut self) {}
 
-    pub fn join_room(&mut self, _id: &str) -> Result<Player, rust_socketio::error::Error> {
+    pub fn join_room(&mut self, _id: &str) -> Result<(), rust_socketio::error::Error> {
         println!("emitting join-room event");
         self.socket
             .as_mut()
             .unwrap()
             .emit(event::JOIN_ROOM, serde_json::json!("{}"))?;
         println!("emitted join-room event");
-        Ok(Player::new(Point3::<f32>::new(0.5, 1.5, 1.5)))
+        Ok(())
     }
 
     pub fn try_move(&mut self, direction: &DirectionJson) {
@@ -89,6 +116,10 @@ impl Api {
 }
 
 pub enum ApiEvent {
+    UpdateUser {
+        uid: Uuid,
+        name: String,
+    },
     JoinRoom,
     UpdateRoomState,
     UpdateField {

@@ -4,6 +4,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 use imgui_sdl2::ImguiSdl2;
+use player::Player;
 use sdl2::keyboard::KeyboardState;
 use sdl2::keyboard::Scancode;
 use sdl2::video::GLContext;
@@ -13,10 +14,6 @@ use sdl2::Sdl;
 use sdl2::TimerSubsystem;
 use sdl2::VideoSubsystem;
 
-type Vector3 = nalgebra::Vector3<f32>;
-type Matrix4 = nalgebra::Matrix4<f32>;
-type Point3 = nalgebra::Point3<f32>;
-
 use re::gl;
 use re::gl::Gl;
 use re::shader::Program;
@@ -25,12 +22,8 @@ use re::shader::Uniform;
 use re::shader::UniformVariables;
 use re::texture::image_manager::ImageManager;
 use re::texture::texture_atlas::TextureAtlasPos;
-use reverie_engine as re;
-
-type TextureUV = re::texture::texture_atlas::TextureUV<TEX_W, TEX_H, TEX_ATLAS_W, TEX_ATLAS_H>;
-type CuboidTextures<'a> =
-    re::vao::vao_builder::CuboidTextures<'a, TEX_W, TEX_H, TEX_ATLAS_W, TEX_ATLAS_H>;
-type VaoBuilder<'a> = re::vao::vao_builder::VaoBuilder<'a, TEX_W, TEX_H, TEX_ATLAS_W, TEX_ATLAS_H>;
+use re::vao::vao_config::VaoConfigBuilder;
+use uuid::Uuid;
 
 mod api;
 mod camera;
@@ -39,6 +32,7 @@ mod mock_server;
 mod player;
 mod setting_storage;
 mod socketio_encoding;
+mod types;
 mod vao_ex;
 
 use crate::api::json::DirectionJson;
@@ -47,6 +41,7 @@ use crate::field::Field;
 use crate::mock_server::Api;
 use crate::mock_server::ApiEvent;
 use crate::setting_storage::Setting;
+use crate::types::*;
 use crate::vao_ex::VaoBuilderEx;
 
 // 64x64ピクセルのテクスチャが4x4個並んでいる
@@ -167,38 +162,36 @@ fn main() {
         "テクスチャのサイズが想定と違います"
     );
 
+    let vao_config = VaoConfigBuilder::new(&shader)
+        .texture(&main_texture)
+        .material_specular(Vector3::new(0.2, 0.2, 0.2))
+        .material_shininess(0.1_f32)
+        .light_direction(Vector3::new(0.2, 1.0, 0.2))
+        .ambient(Vector3::new(0.3, 0.3, 0.3))
+        .diffuse(Vector3::new(0.5, 0.5, 0.5))
+        .specular(Vector3::new(0.2, 0.2, 0.2))
+        .build();
+
     let mut field = Field::<FIELD_SIZE, FIELD_SIZE>::new();
 
     let mut stage_vao_builder = VaoBuilder::new();
-    stage_vao_builder.attatch_program(&shader);
-    let mut stage_vao = stage_vao_builder.build(gl);
+    let mut stage_vao = stage_vao_builder.build(gl, &vao_config);
 
     let mut api = Api::new();
     let unhandled_events = Arc::new(Mutex::new(VecDeque::new()));
-    api.connect(Arc::clone(&unhandled_events))
-        .expect("cannot connect");
-    let player = api.join_room("foo").expect("cannot join room");
-    let mut camera = Camera::new(player.pos);
+    api.connect(&unhandled_events).expect("cannot connect");
+    api.setup_uid(setting.uuid).expect("cannot setup uid");
+    api.join_room("foo").expect("cannot join room");
+    let mut own_player;
+    let mut camera = Camera::new(Point3::new(0.0, 0.0, 0.0));
 
-    /* デバッグ用 */
-    let depth_test = true;
-    let blend = true;
-    let wireframe = false;
-    let culling = true;
-    let alpha: f32 = 1.0;
-    /* ベクトルではなく色 */
-    let material_specular = Vector3::new(0.2, 0.2, 0.2);
-    let material_shininess: f32 = 0.1;
-    let light_direction = Vector3::new(0.2, 1.0, 0.2);
-    /* ambient, diffuse, specular はベクトルではなく色 */
-    let ambient = Vector3::new(0.3, 0.3, 0.3);
-    let diffuse = Vector3::new(0.5, 0.5, 0.5);
-    let specular = Vector3::new(0.2, 0.2, 0.2);
+    let mut user_id = setting.uuid;
+    let mut user_name: String = "".to_string();
 
     // ゲーム開始から現在までのフレーム数。約60フレームで1秒
     let mut frames: u64 = 0;
 
-    let mut players = vec![player];
+    let mut players = Vec::new();
 
     'main: loop {
         frames += 1;
@@ -221,7 +214,6 @@ fn main() {
             }
         }
 
-        let mut moved = false;
         let mut field_updated = false;
         // Socket.ioのイベントを処理
         socketio_thread.block_on(async {
@@ -233,84 +225,59 @@ fn main() {
                         field: field_,
                     } => {
                         players = players_;
-                        moved = true;
 
                         field.update(field_);
                         field_updated = true;
                     }
                     ApiEvent::JoinRoom => todo!(),
                     ApiEvent::UpdateRoomState => todo!(),
+                    ApiEvent::UpdateUser { uid, name } => {
+                        user_id = uid;
+                        user_name = name;
+                    }
                 }
             }
         });
 
         let key_state = KeyboardState::new(&game.event_pump);
-        if key_state.is_scancode_pressed(Scancode::W) {
+        if key_state.is_scancode_pressed(Scancode::W) || key_state.is_scancode_pressed(Scancode::Up) {
             api.try_move(&DirectionJson::Up);
         }
-        if key_state.is_scancode_pressed(Scancode::S) {
+        if key_state.is_scancode_pressed(Scancode::S) || key_state.is_scancode_pressed(Scancode::Down) {
             api.try_move(&DirectionJson::Down);
         }
-        if key_state.is_scancode_pressed(Scancode::D) {
+        if key_state.is_scancode_pressed(Scancode::D) || key_state.is_scancode_pressed(Scancode::Right) {
             api.try_move(&DirectionJson::Right);
         }
-        if key_state.is_scancode_pressed(Scancode::A) {
+        if key_state.is_scancode_pressed(Scancode::A) || key_state.is_scancode_pressed(Scancode::Left) {
             api.try_move(&DirectionJson::Left);
         }
 
-        if moved {
-            camera.shade_to_new_position(players[0].pos, frames, 12);
+        if field_updated {
+            own_player = find_own_player(&players, user_id);
+            if let Some(own_player) = own_player {
+                camera.shade_to_new_position(own_player.pos, frames, 12);
+            } else {
+                // TODO: 自機がいないときのカメラの場所
+            }
         }
 
         camera.update_position(frames);
 
         if field_updated {
             stage_vao_builder = VaoBuilder::new();
-            stage_vao_builder.attatch_program(&shader);
             stage_vao_builder.add_floor(FIELD_SIZE, FIELD_SIZE);
             field.add_to(&mut stage_vao_builder);
-            stage_vao = stage_vao_builder.build(gl);
+            stage_vao = stage_vao_builder.build(gl, &vao_config);
         }
 
         let mut player_vao_builder = VaoBuilder::new();
-        player_vao_builder.attatch_program(&shader);
         for player in &players {
-            player_vao_builder.add_octahedron(
-                &player.pos,
-                0.5,
-                &TextureUV::of_atlas(&TEX_PLAYER_TMP),
-            );
+            player_vao_builder.add_octahedron(&player.pos, 0.5, &TextureUV::of_atlas(&TEX_PLAYER_TMP));
         }
-        let player_vao = player_vao_builder.build(gl);
+        let player_vao = player_vao_builder.build(gl, &vao_config);
 
         let (width, height) = game.window.drawable_size();
-
-        unsafe {
-            if depth_test {
-                gl.Enable(gl::DEPTH_TEST);
-            } else {
-                gl.Disable(gl::DEPTH_TEST);
-            }
-
-            if blend {
-                gl.Enable(gl::BLEND);
-                gl.BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
-            } else {
-                gl.Disable(gl::BLEND);
-            }
-
-            if wireframe {
-                gl.PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
-            } else {
-                gl.PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
-            }
-
-            if culling {
-                gl.Enable(gl::CULL_FACE);
-            } else {
-                gl.Disable(gl::CULL_FACE);
-            }
-        }
 
         unsafe {
             gl.Viewport(0, 0, width as i32, height as i32);
@@ -336,29 +303,24 @@ fn main() {
             uniforms.add(c_str!("uModel"), Matrix4(&model_matrix));
             uniforms.add(c_str!("uView"), Matrix4(&view_matrix));
             uniforms.add(c_str!("uProjection"), Matrix4(&projection_matrix));
-            uniforms.add(c_str!("uAlpha"), Float(alpha));
             uniforms.add(
                 c_str!("uViewPosition"),
-                TripleFloat(players[0].pos.x, players[0].pos.y, players[0].pos.z),
+                TripleFloat(camera.pos().x, camera.pos().y, camera.pos().z),
             );
-            uniforms.add(c_str!("uMaterial.specular"), Vector3(&material_specular));
-            uniforms.add(c_str!("uMaterial.shininess"), Float(material_shininess));
-            uniforms.add(c_str!("uLight.direction"), Vector3(&light_direction));
-            uniforms.add(c_str!("uLight.ambient"), Vector3(&ambient));
-            uniforms.add(c_str!("uLight.diffuse"), Vector3(&diffuse));
-            uniforms.add(c_str!("uLight.specular"), Vector3(&specular));
             uniforms
         };
 
-        unsafe {
-            gl.BindTexture(gl::TEXTURE_2D, main_texture.gl_id);
-            stage_vao.draw_triangles(&uniforms);
-            player_vao.draw_triangles(&uniforms);
-            gl.BindTexture(gl::TEXTURE_2D, 0);
-        }
+        stage_vao.draw_triangles(&uniforms);
+        player_vao.draw_triangles(&uniforms);
 
         game.window.gl_swap_window();
 
         std::thread::sleep(std::time::Duration::new(0, 1_000_000_000u32 / 60)); // 60FPS
     }
+}
+
+/// 自機を見つける
+/// `players`の要素数は2程度
+fn find_own_player(players: &Vec<Player>, uid: Uuid) -> Option<&Player> {
+    players.iter().find(|player| player.uid == uid)
 }

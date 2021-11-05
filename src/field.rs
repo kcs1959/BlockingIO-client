@@ -1,4 +1,4 @@
-use crate::{vao_ex::VaoBuilderEx, VaoBuilder};
+use crate::types::*;
 
 /// 各地点のブロックの高さを保持する構造体
 ///
@@ -13,9 +13,7 @@ pub struct Field<const X: usize, const Z: usize> {
 
 impl<const X: usize, const Z: usize> Field<X, Z> {
     pub fn new() -> Self {
-        Self {
-            map: [[0_u32; X]; Z],
-        }
+        Self { map: [[0_u32; X]; Z] }
     }
 
     pub fn set_height(&mut self, height: u32, x: usize, z: usize) {

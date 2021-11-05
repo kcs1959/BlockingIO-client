@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::FIELD_SIZE;
 
@@ -33,7 +34,7 @@ pub struct PlayerJson {
     pub position: PositionJson,
     pub direction: DirectionJson,
     pub point: i32,
-    pub uid: String,
+    pub uid: Uuid,
     pub name: String,
     pub status: PlayerStatusJson,
 }
@@ -88,7 +89,7 @@ pub struct UpdateFieldJson {
 pub struct UserJson {
     pub name: String,
     pub point: i32,
-    pub uid: String,
+    pub uid: Uuid,
     pub socketId: String,
     pub requestingToStartGame: bool,
 }
@@ -112,4 +113,19 @@ pub struct RoomStateEventJson {
     pub roomname: Option<String>,
     pub currentGame: Option<serde_json::Value>, // 型の詳細が不明
     pub state: RoomStateJson,
+}
+
+#[derive(Serialize)]
+pub struct SetupUidJson {
+    pub user_id: Uuid,
+}
+
+#[derive(Deserialize)]
+#[allow(non_snake_case)]
+pub struct OnUpdateUserJson {
+    pub name: String,
+    pub point: i32,
+    pub uid: Uuid,
+    pub socketId: String,
+    pub requestingToStartGame: bool,
 }
