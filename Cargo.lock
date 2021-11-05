@@ -1588,6 +1588,7 @@ dependencies = [
 name = "reverie-engine"
 version = "0.0.3"
 dependencies = [
+ "c_str_macro",
  "gl_generator",
  "image",
  "nalgebra",
