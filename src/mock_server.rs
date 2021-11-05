@@ -60,11 +60,15 @@ impl Api {
 
                     let mut players = Vec::new();
                     for player in &json.player_list {
-                        let player = Player::new(nalgebra::Point3::<f32>::new(
-                            (FIELD_SIZE - 1) as f32 - player.position.row + 0.5,
-                            1.5,
-                            player.position.column + 0.5,
-                        ));
+                        let player = Player::new(
+                            nalgebra::Point3::<f32>::new(
+                                (FIELD_SIZE - 1) as f32 - player.position.row + 0.5,
+                                1.5,
+                                player.position.column + 0.5,
+                            ),
+                            player.uid,
+                            player.name.clone(),
+                        );
                         players.push(player);
                     }
 
