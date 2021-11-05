@@ -322,10 +322,8 @@ fn main() {
         };
 
         unsafe {
-            gl.BindTexture(gl::TEXTURE_2D, main_texture.gl_id);
             stage_vao.draw_triangles(&uniforms);
             player_vao.draw_triangles(&uniforms);
-            gl.BindTexture(gl::TEXTURE_2D, 0);
         }
 
         game.window.gl_swap_window();
