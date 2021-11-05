@@ -181,6 +181,9 @@ fn main() {
     let player = api.join_room("foo").expect("cannot join room");
     let mut camera = Camera::new(player.pos);
 
+    let mut user_id = setting.uuid;
+    let mut user_name: String = "".to_string();
+
     /* デバッグ用 */
     let depth_test = true;
     let blend = true;
@@ -241,6 +244,10 @@ fn main() {
                     }
                     ApiEvent::JoinRoom => todo!(),
                     ApiEvent::UpdateRoomState => todo!(),
+                    ApiEvent::UpdateUser { uid, name } => {
+                        user_id = uid;
+                        user_name = name;
+                    }
                 }
             }
         });

@@ -12,7 +12,7 @@ use rust_socketio::{Payload, Socket, SocketBuilder};
 use uuid::Uuid;
 
 use crate::{
-    api::json::{DirectionJson, SetupUidJson, SquareJson, UpdateFieldJson},
+    api::json::{DirectionJson, OnUpdateUserJson, SetupUidJson, SquareJson, UpdateFieldJson},
     player::Player,
     socketio_encoding::ToUtf8String,
     FIELD_SIZE,
@@ -36,6 +36,16 @@ impl Api {
         self.socket = Some(
             SocketBuilder::new(URL)
                 .on("error", |err, _| eprintln!("Error: {:#?}", err))
+                .on(event::UPDATE_USER, move |payload, _| {
+                    println!("on-update-user event");
+                    let json: OnUpdateUserJson = serde_json::from_slice(&payload.to_utf8_bytes())
+                        .expect("parsing error (on-update-user)");
+                    let event = ApiEvent::UpdateUser {
+                        uid: json.uid,
+                        name: json.name,
+                    };
+                    unhandled_events.lock().unwrap().push_back(event);
+                })
                 .on(event::ROOM_STATE, |payload, _socket| {
                     println!("room-state event");
                     print_payload(&payload);
@@ -100,6 +110,10 @@ impl Api {
 }
 
 pub enum ApiEvent {
+    UpdateUser {
+        uid: Uuid,
+        name: String,
+    },
     JoinRoom,
     UpdateRoomState,
     UpdateField {
