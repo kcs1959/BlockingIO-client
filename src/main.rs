@@ -177,8 +177,8 @@ fn main() {
     let unhandled_events = Arc::new(Mutex::new(VecDeque::new()));
     api.connect(&unhandled_events).expect("cannot connect");
     api.setup_uid(setting.uuid).expect("cannot setup uid");
-    let player = api.join_room("foo").expect("cannot join room");
-    let mut camera = Camera::new(player.pos);
+    api.join_room("foo").expect("cannot join room");
+    let mut camera = Camera::new(Point3::new(0.0, 0.0, 0.0));
 
     let mut user_id = setting.uuid;
     let mut user_name: String = "".to_string();
@@ -201,7 +201,7 @@ fn main() {
     // ゲーム開始から現在までのフレーム数。約60フレームで1秒
     let mut frames: u64 = 0;
 
-    let mut players = vec![player];
+    let mut players = Vec::new();
 
     'main: loop {
         frames += 1;

@@ -92,14 +92,14 @@ impl Api {
 
     pub fn update(&mut self) {}
 
-    pub fn join_room(&mut self, _id: &str) -> Result<Player, rust_socketio::error::Error> {
+    pub fn join_room(&mut self, _id: &str) -> Result<(), rust_socketio::error::Error> {
         println!("emitting join-room event");
         self.socket
             .as_mut()
             .unwrap()
             .emit(event::JOIN_ROOM, serde_json::json!("{}"))?;
         println!("emitted join-room event");
-        Ok(Player::new(Point3::<f32>::new(0.5, 1.5, 1.5)))
+        Ok(())
     }
 
     pub fn try_move(&mut self, direction: &DirectionJson) {
