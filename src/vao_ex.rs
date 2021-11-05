@@ -1,7 +1,4 @@
-use crate::CuboidTextures;
-use crate::Point3;
-use crate::TextureUV;
-use crate::VaoBuilder;
+use crate::types::*;
 use crate::{TEX_BLOCK_DANGER, TEX_BLOCK_SAFE, TEX_BLOCK_TOP};
 
 // ReverieEngineのVaoBuilderに、Blocking.io特有の機能を追加するためのトレイト

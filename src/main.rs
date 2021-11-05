@@ -14,10 +14,6 @@ use sdl2::Sdl;
 use sdl2::TimerSubsystem;
 use sdl2::VideoSubsystem;
 
-type Vector3 = nalgebra::Vector3<f32>;
-type Matrix4 = nalgebra::Matrix4<f32>;
-type Point3 = nalgebra::Point3<f32>;
-
 use re::gl;
 use re::gl::Gl;
 use re::shader::Program;
@@ -26,13 +22,7 @@ use re::shader::Uniform;
 use re::shader::UniformVariables;
 use re::texture::image_manager::ImageManager;
 use re::texture::texture_atlas::TextureAtlasPos;
-use reverie_engine as re;
 use uuid::Uuid;
-
-type TextureUV = re::texture::texture_atlas::TextureUV<TEX_W, TEX_H, TEX_ATLAS_W, TEX_ATLAS_H>;
-type CuboidTextures<'a> =
-    re::vao::vao_builder::CuboidTextures<'a, TEX_W, TEX_H, TEX_ATLAS_W, TEX_ATLAS_H>;
-type VaoBuilder<'a> = re::vao::vao_builder::VaoBuilder<'a, TEX_W, TEX_H, TEX_ATLAS_W, TEX_ATLAS_H>;
 
 mod api;
 mod camera;
@@ -41,6 +31,7 @@ mod mock_server;
 mod player;
 mod setting_storage;
 mod socketio_encoding;
+mod types;
 mod vao_ex;
 
 use crate::api::json::DirectionJson;
@@ -49,6 +40,7 @@ use crate::field::Field;
 use crate::mock_server::Api;
 use crate::mock_server::ApiEvent;
 use crate::setting_storage::Setting;
+use crate::types::*;
 use crate::vao_ex::VaoBuilderEx;
 
 // 64x64ピクセルのテクスチャが4x4個並んでいる

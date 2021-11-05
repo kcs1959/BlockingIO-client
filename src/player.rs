@@ -1,14 +1,14 @@
-use nalgebra as na;
+use crate::types::*;
 use uuid::Uuid;
 
 pub struct Player {
-    pub pos: na::Point3<f32>,
+    pub pos: Point3,
     pub uid: Uuid,
     pub name: String,
 }
 
 impl Player {
-    pub fn new(pos: na::Point3<f32>, uid: Uuid, name: String) -> Self {
+    pub fn new(pos: Point3, uid: Uuid, name: String) -> Self {
         Self { pos, uid, name }
     }
 }

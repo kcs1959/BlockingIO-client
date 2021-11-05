@@ -7,14 +7,13 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use nalgebra::Point3;
 use rust_socketio::{Payload, Socket, SocketBuilder};
 use uuid::Uuid;
 
 use crate::{
     api::json::{DirectionJson, OnUpdateUserJson, SetupUidJson, SquareJson, UpdateFieldJson},
     player::Player,
-    socketio_encoding::ToUtf8String,
+    types::*,
     FIELD_SIZE,
 };
 
@@ -61,7 +60,7 @@ impl Api {
                     let mut players = Vec::new();
                     for player in &json.player_list {
                         let player = Player::new(
-                            nalgebra::Point3::<f32>::new(
+                            Point3::new(
                                 (FIELD_SIZE - 1) as f32 - player.position.row + 0.5,
                                 1.5,
                                 player.position.column + 0.5,
