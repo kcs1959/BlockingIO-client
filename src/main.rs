@@ -51,6 +51,10 @@ const TEX_BLOCK_SAFE: TextureAtlasPos = TextureAtlasPos::new(0, 3);
 const FIELD_SIZE: usize = 32;
 
 fn main() {
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::INFO)
+        .init();
+
     let socketio_thread = tokio::runtime::Runtime::new().unwrap();
     let mut engine = Engine::init();
     let gl = engine.gl().clone();
