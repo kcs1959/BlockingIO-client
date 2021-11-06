@@ -1,4 +1,5 @@
 use crate::types::*;
+use re::vao::vao_builder::VaoBuilder;
 
 /// 各地点のブロックの高さを保持する構造体
 ///

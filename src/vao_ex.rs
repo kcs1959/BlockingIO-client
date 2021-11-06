@@ -1,5 +1,6 @@
 use crate::types::*;
 use crate::{TEX_BLOCK_DANGER, TEX_BLOCK_SAFE, TEX_BLOCK_TOP};
+use re::vao::vao_builder::VaoBuilder;
 
 // ReverieEngineのVaoBuilderに、Blocking.io特有の機能を追加するためのトレイト
 pub trait VaoBuilderEx {

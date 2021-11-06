@@ -4,6 +4,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 use player::Player;
+use re::vao::vao_builder::{VaoBuilder, VaoBuilder3DGeometry};
 use sdl2::keyboard::KeyboardState;
 use sdl2::keyboard::Scancode;
 
