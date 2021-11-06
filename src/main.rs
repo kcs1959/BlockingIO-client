@@ -57,7 +57,7 @@ const TEX_BLOCK_SAFE: TextureAtlasPos = TextureAtlasPos::new(0, 3);
 
 const FIELD_SIZE: usize = 32;
 
-struct Game {
+struct Engine {
     _sdl: Sdl,
     _video_subsystem: VideoSubsystem,
     _timer_subsystem: TimerSubsystem,
@@ -71,8 +71,8 @@ struct Game {
     image_manager: ImageManager,
 }
 
-impl Game {
-    fn init() -> Game {
+impl Engine {
+    fn init() -> Engine {
         let sdl = sdl2::init().unwrap();
         println!("OK: init SDL2: {}", sdl2::version::version());
         let video_subsystem = sdl.video().unwrap();
@@ -122,7 +122,7 @@ impl Game {
         let image_manager = ImageManager::new(gl.clone());
         println!("OK: init ImageManager");
 
-        Game {
+        Engine {
             _sdl: sdl,
             _video_subsystem: video_subsystem,
             _timer_subsystem: timer_subsystem,
@@ -140,8 +140,8 @@ impl Game {
 
 fn main() {
     let socketio_thread = tokio::runtime::Runtime::new().unwrap();
-    let mut game = Game::init();
-    let gl = &game.gl;
+    let mut engine = Engine::init();
+    let gl = &engine.gl;
     let vert_shader = Shader::from_vert_file(gl.clone(), "rsc/shader/shader.vs").unwrap();
     let frag_shader = Shader::from_frag_file(gl.clone(), "rsc/shader/shader.fs").unwrap();
     let shader = Program::from_shaders(gl.clone(), &[vert_shader, frag_shader]).unwrap();
@@ -149,7 +149,7 @@ fn main() {
 
     let setting = Setting::load().expect("設定ファイルの読み込みに失敗");
 
-    let main_texture = game
+    let main_texture = engine
         .image_manager
         .load_image(Path::new("rsc/textures/atlas/main.png"), "atlas/main", true)
         .unwrap();
@@ -198,9 +198,9 @@ fn main() {
         api.update();
 
         // OSのイベントを処理
-        for event in game.event_pump.poll_iter() {
-            game.imgui_sdl2.handle_event(&mut game.imgui, &event);
-            if game.imgui_sdl2.ignore_event(&event) {
+        for event in engine.event_pump.poll_iter() {
+            engine.imgui_sdl2.handle_event(&mut engine.imgui, &event);
+            if engine.imgui_sdl2.ignore_event(&event) {
                 continue;
             }
 
@@ -239,7 +239,7 @@ fn main() {
             }
         });
 
-        let key_state = KeyboardState::new(&game.event_pump);
+        let key_state = KeyboardState::new(&engine.event_pump);
         if key_state.is_scancode_pressed(Scancode::W) || key_state.is_scancode_pressed(Scancode::Up) {
             api.try_move(&DirectionJson::Up);
         }
@@ -277,7 +277,7 @@ fn main() {
         }
         let player_vao = player_vao_builder.build(gl, &vao_config);
 
-        let (width, height) = game.window.drawable_size();
+        let (width, height) = engine.window.drawable_size();
 
         unsafe {
             gl.Viewport(0, 0, width as i32, height as i32);
@@ -313,7 +313,7 @@ fn main() {
         stage_vao.draw_triangles(&uniforms);
         player_vao.draw_triangles(&uniforms);
 
-        game.window.gl_swap_window();
+        engine.window.gl_swap_window();
 
         std::thread::sleep(std::time::Duration::new(0, 1_000_000_000u32 / 60)); // 60FPS
     }
