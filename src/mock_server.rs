@@ -77,7 +77,7 @@ impl Api {
                         players.push(player);
                     }
 
-                    assert_eq!(json.battle_field.length, FIELD_SIZE as i32);
+                    debug_assert_eq!(json.battle_field.length, FIELD_SIZE as i32);
                     let field = make_height_array(json.battle_field.squares);
 
                     queue_update_field

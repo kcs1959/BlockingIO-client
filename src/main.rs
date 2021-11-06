@@ -78,11 +78,11 @@ fn main() {
         .image_manager
         .load_image(Path::new("rsc/textures/atlas/main.png"), "atlas/main", true)
         .expect_or_log("テクスチャの読み込みに失敗");
-    assert_eq!(
+    debug_assert_eq!(
         main_texture.width, TEX_ATLAS_W,
         "テクスチャのサイズが想定と違います"
     );
-    assert_eq!(
+    debug_assert_eq!(
         main_texture.height, TEX_ATLAS_H,
         "テクスチャのサイズが想定と違います"
     );
