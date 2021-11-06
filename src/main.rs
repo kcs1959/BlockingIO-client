@@ -52,9 +52,17 @@ const FIELD_SIZE: usize = 32;
 
 fn main() {
     use tracing::info;
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::DEBUG)
-        .init();
+
+    {
+        let level = if std::env::var("BLKIO_TRACE").unwrap_or("".to_string()) == "1" {
+            tracing::Level::TRACE
+        } else if cfg!(debug_assertions) {
+            tracing::Level::DEBUG
+        } else {
+            tracing::Level::INFO
+        };
+        tracing_subscriber::fmt().with_max_level(level).init();
+    }
 
     let socketio_thread = tokio::runtime::Runtime::new().unwrap_or_log();
     let mut engine = Engine::init();
