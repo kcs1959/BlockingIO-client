@@ -1,8 +1,8 @@
 use crate::types::*;
 use crate::{TEX_BLOCK_DANGER, TEX_BLOCK_SAFE, TEX_BLOCK_TOP};
-use re::vao::vao_builder::VaoBuilder;
+use re::vao::vao_builder::VaoBuffer;
 
-// ReverieEngineのVaoBuilderに、Blocking.io特有の機能を追加するためのトレイト
+// ReverieEngineのVaoBufferに、Blocking.io特有の機能を追加するためのトレイト
 pub trait VaoBuilderEx {
     /// ステージの床を追加する
     fn add_floor(&mut self, width: usize, height: usize);
@@ -17,7 +17,7 @@ pub trait VaoBuilderEx {
 }
 
 fn add_block(
-    vao_builder: &mut VaoBuilder,
+    vao_builder: &mut VaoBuffer,
     x: f32,
     y: f32,
     z: f32,
@@ -33,7 +33,7 @@ fn add_block(
     );
 }
 
-impl VaoBuilderEx for VaoBuilder {
+impl VaoBuilderEx for VaoBuffer {
     fn add_floor(&mut self, width: usize, height: usize) {
         let textures = CuboidTextures {
             top: &TextureUV::of_atlas(&TEX_BLOCK_TOP),

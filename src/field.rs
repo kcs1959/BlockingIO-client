@@ -1,5 +1,5 @@
 use crate::types::*;
-use re::vao::vao_builder::VaoBuilder;
+use re::vao::vao_builder::VaoBuffer;
 
 /// 各地点のブロックの高さを保持する構造体
 ///
@@ -25,7 +25,7 @@ impl<const X: usize, const Z: usize> Field<X, Z> {
         self.map = height_map;
     }
 
-    pub fn add_to(&self, vao_builder: &mut VaoBuilder) {
+    pub fn add_to(&self, vao_builder: &mut VaoBuffer) {
         for x in 0..X {
             for z in 0..Z {
                 vao_builder.add_block_with_height(x as i32, z as i32, self.map[x][z] as i32);

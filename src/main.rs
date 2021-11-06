@@ -4,7 +4,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 use player::Player;
-use re::vao::vao_builder::{VaoBuilder, VaoBuilder3DGeometry};
+use re::vao::vao_builder::{VaoBuffer, VaoBuilder3DGeometry};
 use sdl2::keyboard::KeyboardState;
 use sdl2::keyboard::Scancode;
 
@@ -101,7 +101,7 @@ fn main() {
 
     let mut field = Field::<FIELD_SIZE, FIELD_SIZE>::new();
 
-    let mut stage_vao_builder = VaoBuilder::new();
+    let mut stage_vao_builder = VaoBuffer::new();
     let mut stage_vao = stage_vao_builder.build(&gl, &vao_config);
 
     const URL: &str = "http://localhost:3000";
@@ -195,13 +195,13 @@ fn main() {
         camera.update_position(frames);
 
         if field_updated {
-            stage_vao_builder = VaoBuilder::new();
+            stage_vao_builder = VaoBuffer::new();
             stage_vao_builder.add_floor(FIELD_SIZE, FIELD_SIZE);
             field.add_to(&mut stage_vao_builder);
             stage_vao = stage_vao_builder.build(&gl, &vao_config);
         }
 
-        let mut player_vao_builder = VaoBuilder::new();
+        let mut player_vao_builder = VaoBuffer::new();
         for player in &players {
             player_vao_builder.add_octahedron(&player.pos, 0.5, &TextureUV::of_atlas(&TEX_PLAYER_TMP));
         }
