@@ -3,30 +3,22 @@ use std::path::Path;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-use imgui_sdl2::ImguiSdl2;
 use player::Player;
 use sdl2::keyboard::KeyboardState;
 use sdl2::keyboard::Scancode;
-use sdl2::video::GLContext;
-use sdl2::video::Window;
-use sdl2::EventPump;
-use sdl2::Sdl;
-use sdl2::TimerSubsystem;
-use sdl2::VideoSubsystem;
 
 use re::gl;
-use re::gl::Gl;
 use re::shader::Program;
 use re::shader::Shader;
 use re::shader::Uniform;
 use re::shader::UniformVariables;
-use re::texture::image_manager::ImageManager;
 use re::texture::texture_atlas::TextureAtlasPos;
 use re::vao::vao_config::VaoConfigBuilder;
 use uuid::Uuid;
 
 mod api;
 mod camera;
+mod engine;
 mod field;
 mod mock_server;
 mod player;
@@ -37,6 +29,7 @@ mod vao_ex;
 
 use crate::api::json::DirectionJson;
 use crate::camera::Camera;
+use crate::engine::Engine;
 use crate::field::Field;
 use crate::mock_server::Api;
 use crate::mock_server::ApiEvent;
@@ -57,91 +50,10 @@ const TEX_BLOCK_SAFE: TextureAtlasPos = TextureAtlasPos::new(0, 3);
 
 const FIELD_SIZE: usize = 32;
 
-struct Engine {
-    _sdl: Sdl,
-    _video_subsystem: VideoSubsystem,
-    _timer_subsystem: TimerSubsystem,
-    window: Window,
-    _gl_context: GLContext, /* GLContextを誰かが所有していないとOpenGLを使えない */
-    gl: Gl,
-    imgui: imgui::Context,
-    imgui_sdl2: ImguiSdl2,
-    _imgui_renderer: imgui_opengl_renderer::Renderer,
-    event_pump: EventPump,
-    image_manager: ImageManager,
-}
-
-impl Engine {
-    fn init() -> Engine {
-        let sdl = sdl2::init().unwrap();
-        println!("OK: init SDL2: {}", sdl2::version::version());
-        let video_subsystem = sdl.video().unwrap();
-        println!("OK: init SDL2 Video Subsystem");
-        let timer_subsystem = sdl.timer().unwrap();
-        println!("OK: init SDL2 Timer Subsystem");
-
-        {
-            let gl_attr = video_subsystem.gl_attr();
-            gl_attr.set_context_profile(sdl2::video::GLProfile::Core);
-            gl_attr.set_context_version(3, 3);
-            let (major, minor) = gl_attr.context_version();
-            println!("OK: init OpenGL: version {}.{}", major, minor);
-        }
-
-        let window = video_subsystem
-            .window("SDL", 900, 480)
-            .opengl()
-            .position_centered()
-            .resizable()
-            .build()
-            .unwrap();
-        println!("OK: init window '{}'", window.title());
-
-        let _gl_context = window.gl_create_context().unwrap();
-        let gl = Gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as _);
-        println!("OK: init GL context");
-
-        let mut imgui = imgui::Context::create();
-        imgui.set_ini_filename(None);
-        let imgui_sdl2 = imgui_sdl2::ImguiSdl2::new(&mut imgui, &window);
-        let imgui_renderer = imgui_opengl_renderer::Renderer::new(&mut imgui, |s| {
-            video_subsystem.gl_get_proc_address(s) as _
-        });
-        {
-            use imgui::im_str;
-            println!(
-                "OK: init ImGui (Platform: {}, Renderer: {})",
-                imgui.platform_name().unwrap_or(im_str!("Unknown")),
-                imgui.renderer_name().unwrap_or(im_str!("Unknown"))
-            );
-        }
-
-        let event_pump = sdl.event_pump().unwrap();
-        println!("OK: init event pump");
-
-        let image_manager = ImageManager::new(gl.clone());
-        println!("OK: init ImageManager");
-
-        Engine {
-            _sdl: sdl,
-            _video_subsystem: video_subsystem,
-            _timer_subsystem: timer_subsystem,
-            window,
-            _gl_context,
-            gl,
-            imgui,
-            imgui_sdl2,
-            _imgui_renderer: imgui_renderer,
-            event_pump,
-            image_manager,
-        }
-    }
-}
-
 fn main() {
     let socketio_thread = tokio::runtime::Runtime::new().unwrap();
     let mut engine = Engine::init();
-    let gl = &engine.gl;
+    let gl = engine.gl().clone();
     let vert_shader = Shader::from_vert_file(gl.clone(), "rsc/shader/shader.vs").unwrap();
     let frag_shader = Shader::from_frag_file(gl.clone(), "rsc/shader/shader.fs").unwrap();
     let shader = Program::from_shaders(gl.clone(), &[vert_shader, frag_shader]).unwrap();
@@ -175,7 +87,7 @@ fn main() {
     let mut field = Field::<FIELD_SIZE, FIELD_SIZE>::new();
 
     let mut stage_vao_builder = VaoBuilder::new();
-    let mut stage_vao = stage_vao_builder.build(gl, &vao_config);
+    let mut stage_vao = stage_vao_builder.build(&gl, &vao_config);
 
     let mut api = Api::new();
     let unhandled_events = Arc::new(Mutex::new(VecDeque::new()));
@@ -239,7 +151,7 @@ fn main() {
             }
         });
 
-        let key_state = KeyboardState::new(&engine.event_pump);
+        let key_state = KeyboardState::new(&engine.event_pump());
         if key_state.is_scancode_pressed(Scancode::W) || key_state.is_scancode_pressed(Scancode::Up) {
             api.try_move(&DirectionJson::Up);
         }
@@ -268,16 +180,16 @@ fn main() {
             stage_vao_builder = VaoBuilder::new();
             stage_vao_builder.add_floor(FIELD_SIZE, FIELD_SIZE);
             field.add_to(&mut stage_vao_builder);
-            stage_vao = stage_vao_builder.build(gl, &vao_config);
+            stage_vao = stage_vao_builder.build(&gl, &vao_config);
         }
 
         let mut player_vao_builder = VaoBuilder::new();
         for player in &players {
             player_vao_builder.add_octahedron(&player.pos, 0.5, &TextureUV::of_atlas(&TEX_PLAYER_TMP));
         }
-        let player_vao = player_vao_builder.build(gl, &vao_config);
+        let player_vao = player_vao_builder.build(&gl, &vao_config);
 
-        let (width, height) = engine.window.drawable_size();
+        let (width, height) = engine.window().drawable_size();
 
         unsafe {
             gl.Viewport(0, 0, width as i32, height as i32);
@@ -313,7 +225,7 @@ fn main() {
         stage_vao.draw_triangles(&uniforms);
         player_vao.draw_triangles(&uniforms);
 
-        engine.window.gl_swap_window();
+        engine.window().gl_swap_window();
 
         std::thread::sleep(std::time::Duration::new(0, 1_000_000_000u32 / 60)); // 60FPS
     }
