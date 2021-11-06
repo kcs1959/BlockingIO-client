@@ -8,20 +8,24 @@ use encoding::EncoderTrap;
 use encoding::Encoding;
 use rust_socketio::Payload;
 
+use crate::types::*;
+
 /// 受け取った文字列をUTF-8として解釈し直す
 ///
 /// 例:
 ///  - 「å ¡ãã¦ã¼ã¶ã¼」→「名無しユーザー」
 ///  - 「ã«ã¼ã 10」→「ルーム10」
+#[tracing::instrument]
 pub fn payload_str_to_utf8(payload: &Payload) -> String {
     let bytes = payload_str_to_bytes(payload);
-    let converted = UTF_8.decode(&bytes, DecoderTrap::Ignore).unwrap();
+    let converted = UTF_8.decode(&bytes, DecoderTrap::Ignore).unwrap_or_log();
     converted
 }
 
+#[tracing::instrument]
 pub fn payload_str_to_bytes(payload: &Payload) -> Vec<u8> {
     match payload {
-        Payload::String(str) => ISO_8859_1.encode(&str, EncoderTrap::Ignore).unwrap(),
+        Payload::String(str) => ISO_8859_1.encode(&str, EncoderTrap::Ignore).unwrap_or_log(),
         Payload::Binary(bytes) => bytes.to_vec(),
     }
 }

@@ -9,7 +9,7 @@ pub struct PositionJson {
     pub column: f32,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub enum DirectionJson {
     #[serde(rename = "down")]
     Down,

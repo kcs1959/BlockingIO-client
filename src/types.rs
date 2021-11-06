@@ -12,3 +12,4 @@ pub type VaoBuilder = re::vao::vao_builder::VaoBuilder<TEX_W, TEX_H, TEX_ATLAS_W
 // prelude
 pub use crate::socketio_encoding::ToUtf8String;
 pub use crate::vao_ex::VaoBuilderEx;
+pub use tracing_unwrap::{OptionExt, ResultExt};

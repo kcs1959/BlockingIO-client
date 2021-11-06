@@ -7,9 +7,14 @@ use std::io::Write;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
+use tracing_unwrap::ResultExt;
 use uuid::Uuid;
 
-#[derive(Deserialize, Serialize)]
+use tracing::{info, warn};
+
+use crate::types::*;
+
+#[derive(Deserialize, Serialize, Debug)]
 struct SettingToml {
     pub uuid: Option<Uuid>,
 }
@@ -22,21 +27,20 @@ pub struct Setting {
 impl Setting {
     pub fn load() -> Result<Setting, Box<dyn Error>> {
         let file_path = Setting::file_path()?;
-        println!("loading {:?}", &file_path);
 
         let mut toml = SettingToml::load(&file_path)?;
         if toml.has_empty_property() {
+            warn!("setting lacks some property: {:?}", toml);
             toml.fill_empty_value();
             toml.save(&file_path)?;
         }
 
-        let setting: Setting = toml.try_into().unwrap();
+        let setting: Setting = toml.try_into().unwrap_or_log();
         Ok(setting)
     }
 
     pub fn save(&self) -> Result<(), Box<dyn Error>> {
         let file_path = Setting::file_path()?;
-        println!("saving {:?}", &file_path);
 
         SettingToml::from(self).save(&file_path)
     }
@@ -44,7 +48,7 @@ impl Setting {
     fn file_path() -> Result<PathBuf, Box<dyn Error>> {
         let mut file_path = PathBuf::new();
         file_path.push(env::current_exe()?);
-        file_path = file_path.parent().unwrap().into();
+        file_path = file_path.parent().unwrap_or_log().into();
         file_path.push("blocking-io-settings.toml");
         Ok(file_path)
     }
@@ -55,8 +59,11 @@ impl SettingToml {
         Self { uuid: None }
     }
 
+    #[tracing::instrument("load setting")]
     pub fn load(file_path: &PathBuf) -> Result<Self, Box<dyn Error>> {
+        info!("loading");
         if !file_path.is_file() {
+            warn!("setting file not found");
             Ok(SettingToml::empty())
         } else {
             let str = fs::read_to_string(&file_path)?;
@@ -66,7 +73,9 @@ impl SettingToml {
         }
     }
 
+    #[tracing::instrument("save setting")]
     pub fn save(&self, file_path: &PathBuf) -> Result<(), Box<dyn Error>> {
+        info!("saving");
         let str = toml::to_string(self)?;
         let mut file = OpenOptions::new()
             .create(true)
@@ -98,7 +107,7 @@ impl TryFrom<SettingToml> for Setting {
             Err(())
         } else {
             Ok(Setting {
-                uuid: value.uuid.unwrap(),
+                uuid: value.uuid.unwrap_or_log(),
             })
         }
     }

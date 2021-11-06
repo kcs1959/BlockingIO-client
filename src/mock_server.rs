@@ -10,6 +10,8 @@ use std::{
 use rust_socketio::{Payload, Socket, SocketBuilder};
 use uuid::Uuid;
 
+use tracing::{debug, error, info, trace};
+
 use crate::{
     api::json::{DirectionJson, OnUpdateUserJson, SetupUidJson, SquareJson, UpdateFieldJson},
     player::Player,
@@ -19,13 +21,18 @@ use crate::{
 
 pub struct Api {
     socket: Option<Socket>,
+    url: String,
 }
 
 impl Api {
-    pub fn new() -> Api {
-        Api { socket: None }
+    pub fn new(url: &str) -> Api {
+        Api {
+            socket: None,
+            url: url.to_string(),
+        }
     }
 
+    #[tracing::instrument(name = "connect API", skip_all, fields(url = %self.url))]
     pub fn connect(
         &mut self,
         queue: &Arc<Mutex<VecDeque<ApiEvent>>>,
@@ -33,29 +40,28 @@ impl Api {
         let queue_update_user = Arc::clone(queue);
         let queue_update_field = Arc::clone(queue);
 
-        const URL: &str = "http://localhost:3000";
-        // const URL: &str = "http://13.114.119.94:3000";
+        info!("connecting server");
         self.socket = Some(
-            SocketBuilder::new(URL)
-                .on("error", |err, _| eprintln!("Error: {:#?}", err))
+            SocketBuilder::new(&self.url)
+                .on("error", |err, _| error!("socket.io {:#?}", err))
                 .on(event::UPDATE_USER, move |payload, _| {
-                    println!("on-update-user event");
-                    let json: OnUpdateUserJson = serde_json::from_slice(&payload.to_utf8_bytes())
-                        .expect("parsing error (on-update-user)");
+                    debug!("{} event", event::UPDATE_USER);
+                    let json: OnUpdateUserJson =
+                        serde_json::from_slice(&payload.to_utf8_bytes()).unwrap_or_log();
                     let event = ApiEvent::UpdateUser {
                         uid: json.uid,
                         name: json.name,
                     };
-                    queue_update_user.lock().unwrap().push_back(event);
+                    queue_update_user.lock().unwrap_or_log().push_back(event);
                 })
                 .on(event::ROOM_STATE, |payload, _socket| {
-                    println!("room-state event");
+                    debug!("{} event", event::ROOM_STATE);
                     print_payload(&payload);
                 })
                 .on(event::UPDATE_FIELD, move |payload, _| {
-                    println!("update-field event");
-                    let json: UpdateFieldJson = serde_json::from_slice(&payload.to_utf8_bytes())
-                        .expect("parsing erro (update-field event)");
+                    debug!("{} event", event::UPDATE_FIELD);
+                    let json: UpdateFieldJson =
+                        serde_json::from_slice(&payload.to_utf8_bytes()).unwrap_or_log();
 
                     let mut players = Vec::new();
                     for player in &json.player_list {
@@ -76,7 +82,7 @@ impl Api {
 
                     queue_update_field
                         .lock()
-                        .unwrap()
+                        .unwrap_or_log()
                         .push_back(ApiEvent::UpdateField { players, field });
                 })
                 .connect()?,
@@ -84,9 +90,10 @@ impl Api {
         Ok(())
     }
 
+    #[tracing::instrument(skip(self))]
     pub fn setup_uid(&mut self, uid: Uuid) -> Result<(), Box<dyn Error>> {
-        println!("setup-uid");
-        self.socket.as_mut().unwrap().emit(
+        info!("emitting");
+        self.socket.as_mut().unwrap_or_log().emit(
             event::SETUP_UID,
             serde_json::to_string(&SetupUidJson { user_id: uid })?,
         )?;
@@ -95,23 +102,24 @@ impl Api {
 
     pub fn update(&mut self) {}
 
+    #[tracing::instrument(skip(self))]
     pub fn join_room(&mut self, _id: &str) -> Result<(), rust_socketio::error::Error> {
-        println!("emitting join-room event");
+        info!("emitting");
         self.socket
             .as_mut()
-            .unwrap()
+            .unwrap_or_log()
             .emit(event::JOIN_ROOM, serde_json::json!("{}"))?;
-        println!("emitted join-room event");
         Ok(())
     }
 
+    #[tracing::instrument(skip(self))]
     pub fn try_move(&mut self, direction: &DirectionJson) {
-        println!("try-move");
+        debug!("emitting");
         self.socket
             .as_mut()
-            .expect("no server")
-            .emit(event::TRY_MOVE, serde_json::to_string(&direction).unwrap())
-            .unwrap();
+            .unwrap_or_log()
+            .emit(event::TRY_MOVE, serde_json::to_string(&direction).unwrap_or_log())
+            .unwrap_or_log();
     }
 }
 
@@ -150,14 +158,14 @@ fn make_height_array(
 fn print_payload(payload: &Payload) {
     match payload {
         Payload::String(str) => {
-            println!("  Received: {}", str);
+            trace!("  Received: {}", str);
             let bytes = payload.to_utf8_bytes();
             if let Ok(json) = serde_json::from_slice::<serde_json::Value>(&bytes) {
-                println!("  Json: {}", json);
+                debug!("  Json: {}", json);
             } else {
-                println!("  Not a json");
+                debug!("  Not a json");
             }
         }
-        Payload::Binary(bin_data) => println!("  Received bytes: {:#?}", bin_data),
+        Payload::Binary(bin_data) => debug!("  Received bytes: {:#?}", bin_data),
     }
 }

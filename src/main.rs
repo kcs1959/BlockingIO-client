@@ -51,24 +51,25 @@ const TEX_BLOCK_SAFE: TextureAtlasPos = TextureAtlasPos::new(0, 3);
 const FIELD_SIZE: usize = 32;
 
 fn main() {
+    use tracing::info;
     tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::INFO)
+        .with_max_level(tracing::Level::DEBUG)
         .init();
 
-    let socketio_thread = tokio::runtime::Runtime::new().unwrap();
+    let socketio_thread = tokio::runtime::Runtime::new().unwrap_or_log();
     let mut engine = Engine::init();
     let gl = engine.gl().clone();
-    let vert_shader = Shader::from_vert_file(gl.clone(), "rsc/shader/shader.vs").unwrap();
-    let frag_shader = Shader::from_frag_file(gl.clone(), "rsc/shader/shader.fs").unwrap();
-    let shader = Program::from_shaders(gl.clone(), &[vert_shader, frag_shader]).unwrap();
-    println!("OK: shader program");
+    let vert_shader = Shader::from_vert_file(gl.clone(), "rsc/shader/shader.vs").unwrap_or_log();
+    let frag_shader = Shader::from_frag_file(gl.clone(), "rsc/shader/shader.fs").unwrap_or_log();
+    let shader = Program::from_shaders(gl.clone(), &[vert_shader, frag_shader]).unwrap_or_log();
+    info!("shader program");
 
-    let setting = Setting::load().expect("設定ファイルの読み込みに失敗");
+    let setting = Setting::load().expect_or_log("設定ファイルの読み込みに失敗");
 
     let main_texture = engine
         .image_manager
         .load_image(Path::new("rsc/textures/atlas/main.png"), "atlas/main", true)
-        .unwrap();
+        .expect_or_log("テクスチャの読み込みに失敗");
     assert_eq!(
         main_texture.width, TEX_ATLAS_W,
         "テクスチャのサイズが想定と違います"
@@ -77,6 +78,7 @@ fn main() {
         main_texture.height, TEX_ATLAS_H,
         "テクスチャのサイズが想定と違います"
     );
+    info!("load texture");
 
     let vao_config = VaoConfigBuilder::new(&shader)
         .texture(&main_texture)
@@ -93,11 +95,14 @@ fn main() {
     let mut stage_vao_builder = VaoBuilder::new();
     let mut stage_vao = stage_vao_builder.build(&gl, &vao_config);
 
-    let mut api = Api::new();
+    const URL: &str = "http://localhost:3000";
+    // const URL: &str = "http://13.114.119.94:3000";
+    let mut api = Api::new(URL);
     let unhandled_events = Arc::new(Mutex::new(VecDeque::new()));
-    api.connect(&unhandled_events).expect("cannot connect");
-    api.setup_uid(setting.uuid).expect("cannot setup uid");
-    api.join_room("foo").expect("cannot join room");
+    api.connect(&unhandled_events)
+        .expect_or_log("サーバーに接続できません");
+    api.setup_uid(setting.uuid).expect_or_log("uidを設定できません");
+    api.join_room("foo").expect_or_log("ルームに入れません");
     let mut own_player;
     let mut camera = Camera::new(Point3::new(0.0, 0.0, 0.0));
 
@@ -123,7 +128,7 @@ fn main() {
             use sdl2::event::Event;
             match event {
                 Event::Quit { .. } => {
-                    setting.save().expect("設定ファイルの保存に失敗");
+                    setting.save().expect_or_log("設定ファイルの保存に失敗");
                     break 'main;
                 }
                 _ => {}
@@ -133,7 +138,7 @@ fn main() {
         let mut field_updated = false;
         // Socket.ioのイベントを処理
         socketio_thread.block_on(async {
-            let mut lock = unhandled_events.lock().unwrap();
+            let mut lock = unhandled_events.lock().unwrap_or_log();
             while let Some(event) = lock.pop_front() {
                 match event {
                     ApiEvent::UpdateField {
