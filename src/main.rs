@@ -4,7 +4,6 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 use player::Player;
-use re::vao::vao_builder::{VaoBuffer, VaoBuilder3DGeometry};
 use sdl2::keyboard::KeyboardState;
 use sdl2::keyboard::Scancode;
 
@@ -14,7 +13,8 @@ use re::shader::Shader;
 use re::shader::Uniform;
 use re::shader::UniformVariables;
 use re::texture::texture_atlas::TextureAtlasPos;
-use re::vao::vao_config::VaoConfigBuilder;
+use re::vao::VaoBuffer;
+use re::vao::VaoConfigBuilder;
 use uuid::Uuid;
 
 mod api;

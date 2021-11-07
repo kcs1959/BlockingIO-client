@@ -1,5 +1,5 @@
 use crate::types::*;
-use re::vao::vao_builder::VaoBuffer;
+use re::vao::VaoBuffer;
 
 /// 各地点のブロックの高さを保持する構造体
 ///
