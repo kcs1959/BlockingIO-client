@@ -113,9 +113,7 @@ fn main() {
     let mut ok_to_join_room = false;
 
     // サーバーに接続
-    const URL: &str = "http://localhost:3000";
-    // const URL: &str = "http://13.114.119.94:3000";
-    let mut api = Api::new(URL);
+    let mut api = Api::new(&setting.server);
     let unhandled_events = Arc::new(Mutex::new(VecDeque::new()));
     api.connect(&unhandled_events)
         .expect_or_log("サーバーに接続できません");

@@ -2,11 +2,9 @@
 
 # 実行
 
-1. <https://github.com/kcs1959/BlockingIO-api>をlocalhostで動かす。または[ここ](https://github.com/kcs1959/BlockingIO-client/blob/feature/socket-io/src/mock_server.rs#L23-L24)を書き換えてサーバーのアドレスを変更する
+1. ビルドする
 
-2. ビルドする
-
-3. `cargo run`
+2. `cargo run`
 
 ※ WSL2 + VcXsrv を使う場合は、Native opengl をオフに、Disable access control をオンにする。
 
@@ -43,3 +41,7 @@
 > sudo pacman -S sdl2
 > cargo build
 ```
+
+# サーバーのアドレス
+
+1度実行すると、exeと同じディレクトリに`blocking-io-settings.toml`というファイルが生成されるので、`server`の項目を書き換える

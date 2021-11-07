@@ -17,11 +17,13 @@ use crate::types::*;
 #[derive(Deserialize, Serialize, Debug)]
 struct SettingToml {
     pub uuid: Option<Uuid>,
+    pub server: Option<String>,
 }
 
 #[derive(Serialize)]
 pub struct Setting {
     pub uuid: Uuid,
+    pub server: String,
 }
 
 impl Setting {
@@ -56,7 +58,10 @@ impl Setting {
 
 impl SettingToml {
     pub fn empty() -> Self {
-        Self { uuid: None }
+        Self {
+            uuid: None,
+            server: None,
+        }
     }
 
     #[tracing::instrument("load setting")]
@@ -89,12 +94,15 @@ impl SettingToml {
     }
 
     fn has_empty_property(&self) -> bool {
-        self.uuid.is_none()
+        self.uuid.is_none() || self.server.is_none()
     }
 
     fn fill_empty_value(&mut self) {
         if self.uuid.is_none() {
             self.uuid = Some(Uuid::new_v4());
+        }
+        if self.server.is_none() {
+            self.server = Some("http://13.114.119.94:3000".to_string());
         }
     }
 }
@@ -108,6 +116,7 @@ impl TryFrom<SettingToml> for Setting {
         } else {
             Ok(Setting {
                 uuid: value.uuid.unwrap_or_log(),
+                server: value.server.unwrap_or_log(),
             })
         }
     }
@@ -117,6 +126,7 @@ impl From<&Setting> for SettingToml {
     fn from(setting: &Setting) -> Self {
         SettingToml {
             uuid: Some(setting.uuid),
+            server: Some(setting.server.clone()),
         }
     }
 }
