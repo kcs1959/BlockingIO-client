@@ -13,15 +13,15 @@ pub struct Field<const X: usize, const Z: usize> {
     renderer: FieldRenderer<X, Z>,
 }
 
-impl<const X: usize, const Z: usize> Field<X, Z> {
+impl Field<FIELD_SIZE, FIELD_SIZE> {
     pub fn new() -> Self {
         Self {
-            map: na::SMatrix::<i32, X, Z>::zeros(),
+            map: na::SMatrix::<i32, FIELD_SIZE, FIELD_SIZE>::zeros(),
             renderer: FieldRenderer::new(),
         }
     }
 
-    pub fn update(&mut self, height_map: na::SMatrix<i32, X, Z>) {
+    pub fn update(&mut self, height_map: na::SMatrix<i32, FIELD_SIZE, FIELD_SIZE>) {
         self.renderer.make_diff(&self.map, &height_map);
         self.map = height_map;
     }
@@ -36,14 +36,14 @@ struct FieldRenderer<const X: usize, const Z: usize> {
     vao_buffer: VaoBuffer,
 }
 
-impl<const X: usize, const Z: usize> FieldRenderer<X, Z> {
+impl FieldRenderer<FIELD_SIZE, FIELD_SIZE> {
     pub fn new() -> Self {
         let mut vao_buffer = VaoBuffer::with_num_vertex(36 * FIELD_SIZE * FIELD_SIZE); // 立方体は36頂点から成る
         vao_buffer.add_floor(FIELD_SIZE, FIELD_SIZE);
         Self { vao_buffer }
     }
 
-    pub fn render(&mut self, map: &[[u32; X]; Z]) {
+    pub fn render(&mut self, map: &na::SMatrix<i32, FIELD_SIZE, FIELD_SIZE>) {
         // 床以外削除
         self.vao_buffer
             .clear_preserving_first(36 * FIELD_SIZE * FIELD_SIZE);
