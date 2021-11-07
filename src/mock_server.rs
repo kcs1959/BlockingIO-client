@@ -99,8 +99,6 @@ impl Api {
         Ok(())
     }
 
-    pub fn update(&mut self) {}
-
     #[tracing::instrument(skip(self))]
     pub fn join_room(&mut self, _id: &str) -> Result<(), rust_socketio::error::Error> {
         info!("emitting");
@@ -127,8 +125,6 @@ pub enum ApiEvent {
         uid: Uuid,
         name: String,
     },
-    JoinRoom,
-    UpdateRoomState,
     UpdateField {
         players: Vec<Player>,
         field: na::SMatrix<i32, FIELD_SIZE, FIELD_SIZE>,

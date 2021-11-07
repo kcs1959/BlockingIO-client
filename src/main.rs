@@ -3,7 +3,6 @@ use std::path::Path;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-use player::Player;
 use sdl2::keyboard::KeyboardState;
 use sdl2::keyboard::Scancode;
 
@@ -31,6 +30,7 @@ use crate::camera::Camera;
 use crate::engine::Engine;
 use crate::mock_server::Api;
 use crate::mock_server::ApiEvent;
+use crate::player::Player;
 use crate::setting_storage::Setting;
 use crate::types::*;
 use crate::world::World;
@@ -62,15 +62,16 @@ fn main() {
         tracing_subscriber::fmt().with_max_level(level).init();
     }
 
+    let setting = Setting::load().expect_or_log("設定ファイルの読み込みに失敗");
+
     let socketio_thread = tokio::runtime::Runtime::new().unwrap_or_log();
+
     let mut engine = Engine::init();
     let gl = engine.gl().clone();
     let vert_shader = Shader::from_vert_file(gl.clone(), "rsc/shader/shader.vs").unwrap_or_log();
     let frag_shader = Shader::from_frag_file(gl.clone(), "rsc/shader/shader.fs").unwrap_or_log();
     let shader = Program::from_shaders(gl.clone(), &[vert_shader, frag_shader]).unwrap_or_log();
     info!("shader program");
-
-    let setting = Setting::load().expect_or_log("設定ファイルの読み込みに失敗");
 
     let main_texture = engine
         .image_manager
@@ -86,6 +87,9 @@ fn main() {
     );
     info!("load texture");
 
+    let mut world = World::<FIELD_SIZE, FIELD_SIZE>::new();
+    info!("world");
+
     let vao_config = VaoConfigBuilder::new(&shader)
         .texture(&main_texture)
         .material_specular(Vector3::new(0.2, 0.2, 0.2))
@@ -95,11 +99,9 @@ fn main() {
         .diffuse(Vector3::new(0.5, 0.5, 0.5))
         .specular(Vector3::new(0.2, 0.2, 0.2))
         .build();
-
-    let mut world = World::<FIELD_SIZE, FIELD_SIZE>::new();
-
     let mut stage_vao = world.render_field().build(&gl, &vao_config);
     let mut player_vao = world.render_players().build(&gl, &vao_config);
+    info!("vao buffer");
 
     let mut own_player_pos: Point3 = Point3::new(0.0, 0.0, 0.0);
     let mut camera = Camera::new(own_player_pos);
@@ -107,6 +109,7 @@ fn main() {
     let mut user_id = setting.uuid;
     let mut user_name: String = "".to_string();
 
+    // サーバーに接続
     const URL: &str = "http://localhost:3000";
     // const URL: &str = "http://13.114.119.94:3000";
     let mut api = Api::new(URL);
@@ -121,7 +124,6 @@ fn main() {
 
     'main: loop {
         frames += 1;
-        api.update();
 
         // OSのイベントを処理
         for event in engine.event_pump.poll_iter() {
@@ -140,7 +142,7 @@ fn main() {
             }
         }
 
-        let mut field_updated = false;
+        let mut world_updated = false;
         // Socket.ioのイベントを処理
         socketio_thread.block_on(async {
             let mut lock = unhandled_events.lock().unwrap_or_log();
@@ -154,10 +156,8 @@ fn main() {
                         }
                         world.update(field);
                         world.set_players(players);
-                        field_updated = true;
+                        world_updated = true;
                     }
-                    ApiEvent::JoinRoom => todo!(),
-                    ApiEvent::UpdateRoomState => todo!(),
                     ApiEvent::UpdateUser { uid, name } => {
                         user_id = uid;
                         user_name = name;
@@ -166,6 +166,7 @@ fn main() {
             }
         });
 
+        // 入力
         let key_state = KeyboardState::new(&engine.event_pump());
         if key_state.is_scancode_pressed(Scancode::W) || key_state.is_scancode_pressed(Scancode::Up) {
             api.try_move(&DirectionJson::Up);
@@ -180,36 +181,27 @@ fn main() {
             api.try_move(&DirectionJson::Left);
         }
 
-        if field_updated {
+        // カメラ移動
+        if world_updated {
             camera.shade_to_new_position(own_player_pos, frames, 12);
         }
-
         camera.update_position(frames);
 
-        if field_updated {
+        // 描画用の変数を準備
+        let (width, height) = engine.window().drawable_size();
+        if world_updated {
             stage_vao = world.render_field().build(&gl, &vao_config);
             player_vao = world.render_players().build(&gl, &vao_config);
         }
-
-        let (width, height) = engine.window().drawable_size();
-
-        unsafe {
-            gl.Viewport(0, 0, width as i32, height as i32);
-
-            gl.ClearColor(1.0, 1.0, 1.0, 1.0);
-            gl.Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-        }
-
         const SCALE: f32 = 0.5;
-        let model_matrix = Matrix4::identity().scale(SCALE);
-        let view_matrix = camera.view_matrix(SCALE);
+        let model_matrix: Matrix4 = Matrix4::identity().scale(SCALE);
+        let view_matrix: Matrix4 = camera.view_matrix(SCALE);
         let projection_matrix: Matrix4 = Matrix4::new_perspective(
             width as f32 / height as f32,
             std::f32::consts::PI / 4.0f32,
             0.1,
             100.0,
         );
-
         let uniforms = {
             let mut uniforms = UniformVariables::new();
             use c_str_macro::c_str;
@@ -224,9 +216,15 @@ fn main() {
             uniforms
         };
 
+        // 描画
+        unsafe {
+            gl.Viewport(0, 0, width as i32, height as i32);
+
+            gl.ClearColor(1.0, 1.0, 1.0, 1.0);
+            gl.Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+        }
         stage_vao.draw_triangles(&uniforms);
         player_vao.draw_triangles(&uniforms);
-
         engine.window().gl_swap_window();
 
         std::thread::sleep(std::time::Duration::new(0, 1_000_000_000u32 / 60)); // 60FPS
