@@ -109,6 +109,9 @@ fn main() {
     let mut user_id = setting.uuid;
     let mut user_name: String = "".to_string();
 
+    let mut game_state = GameState::OutOfRoom;
+    let mut ok_to_join_room = false;
+
     // サーバーに接続
     const URL: &str = "http://localhost:3000";
     // const URL: &str = "http://13.114.119.94:3000";
@@ -117,7 +120,6 @@ fn main() {
     api.connect(&unhandled_events)
         .expect_or_log("サーバーに接続できません");
     api.setup_uid(setting.uuid).expect_or_log("uidを設定できません");
-    api.join_room("foo").expect_or_log("ルームに入れません");
 
     // ゲーム開始から現在までのフレーム数。約60フレームで1秒
     let mut frames: u64 = 0;
@@ -161,10 +163,18 @@ fn main() {
                     ApiEvent::UpdateUser { uid, name } => {
                         user_id = uid;
                         user_name = name;
+                        ok_to_join_room = true;
                     }
                 }
             }
         });
+
+        if let GameState::OutOfRoom = game_state {
+            if ok_to_join_room {
+                api.join_room("foo").expect_or_log("ルームに入れません");
+                game_state = GameState::InRoom;
+            }
+        }
 
         // 入力
         let key_state = KeyboardState::new(&engine.event_pump());
@@ -235,4 +245,10 @@ fn main() {
 /// `players`の要素数は2程度
 fn find_own_player(players: &Vec<Player>, uid: Uuid) -> Option<&Player> {
     players.iter().find(|player| player.uid == uid)
+}
+
+#[derive(PartialEq)]
+enum GameState {
+    OutOfRoom,
+    InRoom,
 }
