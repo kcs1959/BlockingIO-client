@@ -10,11 +10,15 @@ use re::vao::VaoBuffer;
 /// +---------> Z軸
 pub struct Field<const X: usize, const Z: usize> {
     map: [[u32; X]; Z],
+    renderer: FieldRenderer<X, Z>,
 }
 
 impl<const X: usize, const Z: usize> Field<X, Z> {
     pub fn new() -> Self {
-        Self { map: [[0_u32; X]; Z] }
+        Self {
+            map: [[0_u32; X]; Z],
+            renderer: FieldRenderer::new(),
+        }
     }
 
     pub fn set_height(&mut self, height: u32, x: usize, z: usize) {
@@ -30,6 +34,18 @@ impl<const X: usize, const Z: usize> Field<X, Z> {
             for z in 0..Z {
                 vao_builder.add_block_with_height(x as i32, z as i32, self.map[x][z] as i32);
             }
+        }
+    }
+}
+
+struct FieldRenderer<const X: usize, const Z: usize> {
+    vao_buffer: VaoBuffer,
+}
+
+impl<const X: usize, const Z: usize> FieldRenderer<X, Z> {
+    pub fn new() -> Self {
+        Self {
+            vao_buffer: VaoBuffer::new(),
         }
     }
 }
