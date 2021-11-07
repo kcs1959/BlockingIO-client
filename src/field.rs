@@ -9,23 +9,20 @@ use re::vao::VaoBuffer;
 /// |  \
 /// +---------> Z軸
 pub struct Field<const X: usize, const Z: usize> {
-    map: [[u32; X]; Z],
+    map: na::SMatrix<i32, X, Z>,
     renderer: FieldRenderer<X, Z>,
 }
 
 impl<const X: usize, const Z: usize> Field<X, Z> {
     pub fn new() -> Self {
         Self {
-            map: [[0_u32; X]; Z],
+            map: na::SMatrix::<i32, X, Z>::zeros(),
             renderer: FieldRenderer::new(),
         }
     }
 
-    pub fn set_height(&mut self, height: u32, x: usize, z: usize) {
-        self.map[x][z] = height;
-    }
-
-    pub fn update(&mut self, height_map: [[u32; X]; Z]) {
+    pub fn update(&mut self, height_map: na::SMatrix<i32, X, Z>) {
+        self.renderer.make_diff(&self.map, &height_map);
         self.map = height_map;
     }
 

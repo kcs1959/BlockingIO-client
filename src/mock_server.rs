@@ -78,7 +78,7 @@ impl Api {
                     }
 
                     debug_assert_eq!(json.battle_field.length, FIELD_SIZE as i32);
-                    let field = make_height_array(json.battle_field.squares);
+                    let field = make_height_matrix(json.battle_field.squares);
 
                     queue_update_field
                         .lock()
@@ -132,7 +132,7 @@ pub enum ApiEvent {
     UpdateRoomState,
     UpdateField {
         players: Vec<Player>,
-        field: [[u32; FIELD_SIZE]; FIELD_SIZE],
+        field: na::SMatrix<i32, FIELD_SIZE, FIELD_SIZE>,
     },
 }
 
@@ -148,11 +148,12 @@ mod event {
     pub const UPDATE_USER: &str = "on-update-user";
 }
 
-fn make_height_array(
+fn make_height_matrix(
     squares: [[SquareJson; FIELD_SIZE]; FIELD_SIZE],
-) -> [[u32; FIELD_SIZE]; FIELD_SIZE] {
-    use array_macro::array;
-    array![x => array![z => squares[FIELD_SIZE - 1 - x][z].height; FIELD_SIZE]; FIELD_SIZE]
+) -> na::SMatrix<i32, FIELD_SIZE, FIELD_SIZE> {
+    na::SMatrix::<i32, FIELD_SIZE, FIELD_SIZE>::from_fn(|x, z| {
+        squares[FIELD_SIZE - 1 - x][z].height as i32
+    })
 }
 
 fn print_payload(payload: &Payload) {
