@@ -5,8 +5,8 @@ use crate::FIELD_SIZE;
 
 #[derive(Deserialize)]
 pub struct PositionJson {
-    pub row: f32,
-    pub column: f32,
+    pub row: i32,
+    pub column: i32,
 }
 
 #[derive(Deserialize, Serialize, Debug)]

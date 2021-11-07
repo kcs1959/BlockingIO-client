@@ -1,8 +1,6 @@
 use crate::types::*;
-use reverie_engine::interpolation::{
-    types::{Time, TimeSpan},
-    Interpolation,
-};
+use re::interpolation::{Time, TimeSpan};
+use re::Interpolation;
 
 pub struct Camera {
     pos: Point3,

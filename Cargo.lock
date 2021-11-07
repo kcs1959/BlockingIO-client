@@ -1628,7 +1628,7 @@ dependencies = [
 
 [[package]]
 name = "reverie-engine"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "c_str_macro",
  "gl_generator",
