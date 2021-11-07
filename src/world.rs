@@ -26,6 +26,10 @@ impl World<FIELD_SIZE, FIELD_SIZE> {
         }
     }
 
+    pub fn player_world_pos(&self, player: &Player) -> Point3 {
+        PlayerRenderer::player_world_pos(player, &self.map)
+    }
+
     pub fn update(&mut self, height_map: na::SMatrix<i32, FIELD_SIZE, FIELD_SIZE>) {
         self.map = height_map;
         self.field_renderer.make_diff(&self.map);
@@ -99,7 +103,7 @@ impl FieldRenderer<FIELD_SIZE, FIELD_SIZE> {
     }
 }
 
-pub struct PlayerRenderer {
+struct PlayerRenderer {
     vao_buffer: VaoBuffer,
     players: Vec<Player>,
 }

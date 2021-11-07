@@ -33,7 +33,6 @@ use crate::mock_server::Api;
 use crate::mock_server::ApiEvent;
 use crate::setting_storage::Setting;
 use crate::types::*;
-use crate::world::PlayerRenderer;
 use crate::world::World;
 
 // 64x64ピクセルのテクスチャが4x4個並んでいる
@@ -149,7 +148,7 @@ fn main() {
                 match event {
                     ApiEvent::UpdateField { players, field } => {
                         if let Some(own_player) = find_own_player(&players, user_id) {
-                            own_player_pos = PlayerRenderer::player_world_pos(own_player, &field);
+                            own_player_pos = world.player_world_pos(own_player);
                         } else {
                             // TODO: 自機がいないときのカメラの場所
                         }
