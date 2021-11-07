@@ -131,17 +131,14 @@ impl PlayerRenderer {
     pub fn render(&mut self, field: &FieldMatrix) {
         self.vao_buffer.clear();
         for player in &self.players {
-            self.vao_buffer.add_octahedron(
-                &Self::player_world_pos(player, field),
-                0.5,
-                &TextureUV::of_atlas(&TEX_PLAYER_TMP),
-            )
+            let player_pos = Self::player_world_pos(player, field);
+            self.vao_buffer.add_player(&player_pos, &player.name);
         }
     }
 }
 
 /// ReverieEngineのVaoBufferに、フィールド描画の機能を追加するためのトレイト
-pub trait VaoBuilderOfField {
+trait VaoBuilderForField {
     /// ステージの床を追加する
     fn add_floor(&mut self, width: usize, height: usize);
 
@@ -174,7 +171,7 @@ fn add_block(
     );
 }
 
-impl VaoBuilderOfField for VaoBuffer {
+impl VaoBuilderForField for VaoBuffer {
     fn add_floor(&mut self, width: usize, height: usize) {
         let textures = CuboidTextures {
             top: &TextureUV::of_atlas(&TEX_BLOCK_TOP),
@@ -276,5 +273,16 @@ impl VaoBuilderOfField for VaoBuffer {
                 }),
             );
         }
+    }
+}
+
+/// ReverieEngineのVaoBufferに、プレイヤー描画の機能を追加するためのトレイト
+trait VaoBuilderForPlayer {
+    fn add_player(&mut self, player_pos: &Point3, player_name: &str);
+}
+
+impl VaoBuilderForPlayer for VaoBuffer {
+    fn add_player(&mut self, player_pos: &Point3, _player_name: &str) {
+        self.add_octahedron(&player_pos, 0.5, &TextureUV::of_atlas(&TEX_PLAYER_TMP))
     }
 }
