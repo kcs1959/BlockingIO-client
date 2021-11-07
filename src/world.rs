@@ -12,7 +12,7 @@ pub struct World<const X: usize, const Z: usize> {
     /// |  \
     /// |  \
     /// +---------> Z軸
-    map: na::SMatrix<i32, X, Z>,
+    field: na::SMatrix<i32, X, Z>,
     field_renderer: FieldRenderer<X, Z>,
     player_renderer: PlayerRenderer,
 }
@@ -20,19 +20,19 @@ pub struct World<const X: usize, const Z: usize> {
 impl World<FIELD_SIZE, FIELD_SIZE> {
     pub fn new() -> Self {
         Self {
-            map: na::SMatrix::<i32, FIELD_SIZE, FIELD_SIZE>::zeros(),
+            field: FieldMatrix::zeros(),
             field_renderer: FieldRenderer::new(),
             player_renderer: PlayerRenderer::new(),
         }
     }
 
     pub fn player_world_pos(&self, player: &Player) -> Point3 {
-        PlayerRenderer::player_world_pos(player, &self.map)
+        PlayerRenderer::player_world_pos(player, &self.field)
     }
 
-    pub fn update(&mut self, height_map: na::SMatrix<i32, FIELD_SIZE, FIELD_SIZE>) {
-        self.map = height_map;
-        self.field_renderer.make_diff(&self.map);
+    pub fn update(&mut self, height_map: FieldMatrix) {
+        self.field = height_map;
+        self.field_renderer.make_diff(&self.field);
     }
 
     pub fn set_players(&mut self, players: Vec<Player>) {
@@ -40,12 +40,12 @@ impl World<FIELD_SIZE, FIELD_SIZE> {
     }
 
     pub fn render_field(&mut self) -> &VaoBuffer {
-        self.field_renderer.render(&self.map);
+        self.field_renderer.render(&self.field);
         &self.field_renderer.vao_buffer
     }
 
     pub fn render_players(&mut self) -> &VaoBuffer {
-        self.player_renderer.render(&self.map);
+        self.player_renderer.render(&self.field);
         &self.player_renderer.vao_buffer
     }
 }
@@ -71,19 +71,19 @@ impl FieldRenderer<FIELD_SIZE, FIELD_SIZE> {
         }
     }
 
-    pub fn make_diff(&mut self, map: &na::SMatrix<i32, FIELD_SIZE, FIELD_SIZE>) {
-        let slide_upward = map.clone().remove_row(0).insert_row(FIELD_SIZE - 2, 0);
-        let slide_downward = map.clone().remove_row(FIELD_SIZE - 1).insert_row(0, 0);
-        let slide_left = map.clone().remove_column(0).insert_column(FIELD_SIZE - 2, 0);
-        let slide_right = map.clone().remove_column(FIELD_SIZE - 1).insert_column(0, 0);
+    pub fn make_diff(&mut self, field: &FieldMatrix) {
+        let slide_upward = field.clone().remove_row(0).insert_row(FIELD_SIZE - 2, 0);
+        let slide_downward = field.clone().remove_row(FIELD_SIZE - 1).insert_row(0, 0);
+        let slide_left = field.clone().remove_column(0).insert_column(FIELD_SIZE - 2, 0);
+        let slide_right = field.clone().remove_column(FIELD_SIZE - 1).insert_column(0, 0);
 
-        self.diff_up = map - slide_upward;
-        self.diff_down = map - slide_downward;
-        self.diff_left = map - slide_right; // ←  slide_leftと間違えているわけではない。1つ右にスライドした行列との差を取ると、各要素について1つ左の要素との差が取れる
-        self.diff_right = map - slide_left;
+        self.diff_up = field - slide_upward;
+        self.diff_down = field - slide_downward;
+        self.diff_left = field - slide_right; // ←  slide_leftと間違えているわけではない。1つ右にスライドした行列との差を取ると、各要素について1つ左の要素との差が取れる
+        self.diff_right = field - slide_left;
     }
 
-    pub fn render(&mut self, map: &na::SMatrix<i32, FIELD_SIZE, FIELD_SIZE>) {
+    pub fn render(&mut self, field: &FieldMatrix) {
         // 床以外削除
         self.vao_buffer
             .clear_preserving_first(36 * FIELD_SIZE * FIELD_SIZE);
@@ -92,7 +92,7 @@ impl FieldRenderer<FIELD_SIZE, FIELD_SIZE> {
                 self.vao_buffer.add_cell(
                     x as i32,
                     z as i32,
-                    map[(x, z)],
+                    field[(x, z)],
                     self.diff_up[(x, z)],
                     self.diff_down[(x, z)],
                     self.diff_left[(x, z)],
@@ -116,10 +116,10 @@ impl PlayerRenderer {
         }
     }
 
-    pub fn player_world_pos(player: &Player, map: &na::SMatrix<i32, FIELD_SIZE, FIELD_SIZE>) -> Point3 {
+    pub fn player_world_pos(player: &Player, field: &FieldMatrix) -> Point3 {
         Point3::new(
             player.pos.x as f32 + 0.5,
-            map[(player.pos.x as usize, player.pos.y as usize)] as f32 + 1.5,
+            field[(player.pos.x as usize, player.pos.y as usize)] as f32 + 1.5,
             player.pos.y as f32 + 0.5,
         )
     }
@@ -128,11 +128,11 @@ impl PlayerRenderer {
         self.players = players;
     }
 
-    pub fn render(&mut self, map: &na::SMatrix<i32, FIELD_SIZE, FIELD_SIZE>) {
+    pub fn render(&mut self, field: &FieldMatrix) {
         self.vao_buffer.clear();
         for player in &self.players {
             self.vao_buffer.add_octahedron(
-                &Self::player_world_pos(player, map),
+                &Self::player_world_pos(player, field),
                 0.5,
                 &TextureUV::of_atlas(&TEX_PLAYER_TMP),
             )
