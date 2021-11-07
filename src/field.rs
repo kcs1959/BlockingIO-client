@@ -1,4 +1,7 @@
-use crate::{types::*, FIELD_SIZE, TEX_BLOCK_DANGER, TEX_BLOCK_SAFE, TEX_BLOCK_TOP};
+use crate::{
+    player::Player, types::*, FIELD_SIZE, TEX_BLOCK_DANGER, TEX_BLOCK_SAFE, TEX_BLOCK_TOP,
+    TEX_PLAYER_TMP,
+};
 use re::vao::VaoBuffer;
 
 /// 各地点のブロックの高さを保持する構造体
@@ -10,25 +13,36 @@ use re::vao::VaoBuffer;
 /// +---------> Z軸
 pub struct Field<const X: usize, const Z: usize> {
     map: na::SMatrix<i32, X, Z>,
-    renderer: FieldRenderer<X, Z>,
+    field_renderer: FieldRenderer<X, Z>,
+    player_renderer: PlayerRenderer,
 }
 
 impl Field<FIELD_SIZE, FIELD_SIZE> {
     pub fn new() -> Self {
         Self {
             map: na::SMatrix::<i32, FIELD_SIZE, FIELD_SIZE>::zeros(),
-            renderer: FieldRenderer::new(),
+            field_renderer: FieldRenderer::new(),
+            player_renderer: PlayerRenderer::new(),
         }
     }
 
     pub fn update(&mut self, height_map: na::SMatrix<i32, FIELD_SIZE, FIELD_SIZE>) {
         self.map = height_map;
-        self.renderer.make_diff(&self.map);
+        self.field_renderer.make_diff(&self.map);
     }
 
-    pub fn render(&mut self) -> &VaoBuffer {
-        self.renderer.render(&self.map);
-        &self.renderer.vao_buffer
+    pub fn set_players(&mut self, players: Vec<Player>) {
+        self.player_renderer.set_players(players);
+    }
+
+    pub fn render_field(&mut self) -> &VaoBuffer {
+        self.field_renderer.render(&self.map);
+        &self.field_renderer.vao_buffer
+    }
+
+    pub fn render_players(&mut self) -> &VaoBuffer {
+        self.player_renderer.render(&self.map);
+        &self.player_renderer.vao_buffer
     }
 }
 
@@ -81,6 +95,43 @@ impl FieldRenderer<FIELD_SIZE, FIELD_SIZE> {
                     self.diff_right[(x, z)],
                 );
             }
+        }
+    }
+}
+
+pub struct PlayerRenderer {
+    vao_buffer: VaoBuffer,
+    players: Vec<Player>,
+}
+
+impl PlayerRenderer {
+    pub fn new() -> Self {
+        Self {
+            vao_buffer: VaoBuffer::with_num_vertex(24 * 2), // 1プレイヤーの頂点数は24、1つのゲームには最大2プレイヤー
+            players: Vec::new(),
+        }
+    }
+
+    pub fn player_world_pos(player: &Player, map: &na::SMatrix<i32, FIELD_SIZE, FIELD_SIZE>) -> Point3 {
+        Point3::new(
+            player.pos.x as f32 + 0.5,
+            map[(player.pos.x as usize, player.pos.y as usize)] as f32 + 1.5,
+            player.pos.y as f32 + 0.5,
+        )
+    }
+
+    pub fn set_players(&mut self, players: Vec<Player>) {
+        self.players = players;
+    }
+
+    pub fn render(&mut self, map: &na::SMatrix<i32, FIELD_SIZE, FIELD_SIZE>) {
+        self.vao_buffer.clear();
+        for player in &self.players {
+            self.vao_buffer.add_octahedron(
+                &Self::player_world_pos(player, map),
+                0.5,
+                &TextureUV::of_atlas(&TEX_PLAYER_TMP),
+            )
         }
     }
 }

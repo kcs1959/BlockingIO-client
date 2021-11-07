@@ -13,7 +13,6 @@ use re::shader::Shader;
 use re::shader::Uniform;
 use re::shader::UniformVariables;
 use re::texture::texture_atlas::TextureAtlasPos;
-use re::vao::VaoBuffer;
 use re::vao::VaoConfigBuilder;
 use uuid::Uuid;
 
@@ -31,6 +30,7 @@ use crate::api::json::DirectionJson;
 use crate::camera::Camera;
 use crate::engine::Engine;
 use crate::field::Field;
+use crate::field::PlayerRenderer;
 use crate::mock_server::Api;
 use crate::mock_server::ApiEvent;
 use crate::setting_storage::Setting;
@@ -99,7 +99,8 @@ fn main() {
 
     let mut field = Field::<FIELD_SIZE, FIELD_SIZE>::new();
 
-    let mut stage_vao = field.render().build(&gl, &vao_config);
+    let mut stage_vao = field.render_field().build(&gl, &vao_config);
+    let mut player_vao = field.render_players().build(&gl, &vao_config);
 
     const URL: &str = "http://localhost:3000";
     // const URL: &str = "http://13.114.119.94:3000";
@@ -109,16 +110,15 @@ fn main() {
         .expect_or_log("サーバーに接続できません");
     api.setup_uid(setting.uuid).expect_or_log("uidを設定できません");
     api.join_room("foo").expect_or_log("ルームに入れません");
-    let mut own_player;
-    let mut camera = Camera::new(Point3::new(0.0, 0.0, 0.0));
+
+    let mut own_player_pos: Point3 = Point3::new(0.0, 0.0, 0.0);
+    let mut camera = Camera::new(own_player_pos);
 
     let mut user_id = setting.uuid;
     let mut user_name: String = "".to_string();
 
     // ゲーム開始から現在までのフレーム数。約60フレームで1秒
     let mut frames: u64 = 0;
-
-    let mut players = Vec::new();
 
     'main: loop {
         frames += 1;
@@ -148,12 +148,16 @@ fn main() {
             while let Some(event) = lock.pop_front() {
                 match event {
                     ApiEvent::UpdateField {
-                        players: players_,
+                        players,
                         field: field_,
                     } => {
-                        players = players_;
-
+                        if let Some(own_player) = find_own_player(&players, user_id) {
+                            own_player_pos = PlayerRenderer::player_world_pos(own_player, &field_);
+                        } else {
+                            // TODO: 自機がいないときのカメラの場所
+                        }
                         field.update(field_);
+                        field.set_players(players);
                         field_updated = true;
                     }
                     ApiEvent::JoinRoom => todo!(),
@@ -181,25 +185,15 @@ fn main() {
         }
 
         if field_updated {
-            own_player = find_own_player(&players, user_id);
-            if let Some(own_player) = own_player {
-                camera.shade_to_new_position(own_player.pos, frames, 12);
-            } else {
-                // TODO: 自機がいないときのカメラの場所
-            }
+            camera.shade_to_new_position(own_player_pos, frames, 12);
         }
 
         camera.update_position(frames);
 
         if field_updated {
-            stage_vao = field.render().build(&gl, &vao_config);
+            stage_vao = field.render_field().build(&gl, &vao_config);
+            player_vao = field.render_players().build(&gl, &vao_config);
         }
-
-        let mut player_vao_builder = VaoBuffer::new();
-        for player in &players {
-            player_vao_builder.add_octahedron(&player.pos, 0.5, &TextureUV::of_atlas(&TEX_PLAYER_TMP));
-        }
-        let player_vao = player_vao_builder.build(&gl, &vao_config);
 
         let (width, height) = engine.window().drawable_size();
 
