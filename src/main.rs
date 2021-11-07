@@ -26,7 +26,6 @@ mod player;
 mod setting_storage;
 mod socketio_encoding;
 mod types;
-mod vao_ex;
 
 use crate::api::json::DirectionJson;
 use crate::camera::Camera;

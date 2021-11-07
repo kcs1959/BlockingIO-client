@@ -9,6 +9,5 @@ pub type CuboidTextures<'a> = re::vao::CuboidTextures<'a, TEX_W, TEX_H, TEX_ATLA
 
 // prelude
 pub use crate::socketio_encoding::ToUtf8String;
-pub use crate::vao_ex::VaoBuilderEx;
 pub use re::vao::VaoBuilder3DGeometry;
 pub use tracing_unwrap::{OptionExt, ResultExt};
