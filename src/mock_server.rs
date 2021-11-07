@@ -99,8 +99,6 @@ impl Api {
         Ok(())
     }
 
-    pub fn update(&mut self) {}
-
     #[tracing::instrument(skip(self))]
     pub fn join_room(&mut self, _id: &str) -> Result<(), rust_socketio::error::Error> {
         info!("emitting");
