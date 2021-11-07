@@ -69,10 +69,17 @@ impl FieldRenderer<FIELD_SIZE, FIELD_SIZE> {
         // 床以外削除
         self.vao_buffer
             .clear_preserving_first(36 * FIELD_SIZE * FIELD_SIZE);
-        for x in 0..X {
-            for z in 0..Z {
-                self.vao_buffer
-                    .add_block_with_height(x as i32, z as i32, map[x][z] as i32);
+        for x in 0..FIELD_SIZE {
+            for z in 0..FIELD_SIZE {
+                self.vao_buffer.add_cell(
+                    x as i32,
+                    z as i32,
+                    map[(x, z)],
+                    self.diff_up[(x, z)],
+                    self.diff_down[(x, z)],
+                    self.diff_left[(x, z)],
+                    self.diff_right[(x, z)],
+                );
             }
         }
     }
