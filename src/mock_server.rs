@@ -96,6 +96,7 @@ impl Api {
             event::SETUP_UID,
             serde_json::to_string(&SetupUidJson { user_id: uid })?,
         )?;
+        info!("done");
         Ok(())
     }
 
@@ -106,6 +107,7 @@ impl Api {
             .as_mut()
             .unwrap_or_log()
             .emit(event::JOIN_ROOM, serde_json::json!("{}"))?;
+        info!("done");
         Ok(())
     }
 
