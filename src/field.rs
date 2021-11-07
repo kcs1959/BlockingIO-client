@@ -1,4 +1,4 @@
-use crate::types::*;
+use crate::{types::*, FIELD_SIZE};
 use re::vao::VaoBuffer;
 
 /// 各地点のブロックの高さを保持する構造体
@@ -29,12 +29,9 @@ impl<const X: usize, const Z: usize> Field<X, Z> {
         self.map = height_map;
     }
 
-    pub fn add_to(&self, vao_builder: &mut VaoBuffer) {
-        for x in 0..X {
-            for z in 0..Z {
-                vao_builder.add_block_with_height(x as i32, z as i32, self.map[x][z] as i32);
-            }
-        }
+    pub fn render(&mut self) -> &VaoBuffer {
+        self.renderer.render(&self.map);
+        &self.renderer.vao_buffer
     }
 }
 
@@ -44,8 +41,20 @@ struct FieldRenderer<const X: usize, const Z: usize> {
 
 impl<const X: usize, const Z: usize> FieldRenderer<X, Z> {
     pub fn new() -> Self {
-        Self {
-            vao_buffer: VaoBuffer::new(),
+        let mut vao_buffer = VaoBuffer::with_num_vertex(36 * FIELD_SIZE * FIELD_SIZE); // 立方体は36頂点から成る
+        vao_buffer.add_floor(FIELD_SIZE, FIELD_SIZE);
+        Self { vao_buffer }
+    }
+
+    pub fn render(&mut self, map: &[[u32; X]; Z]) {
+        // 床以外削除
+        self.vao_buffer
+            .clear_preserving_first(36 * FIELD_SIZE * FIELD_SIZE);
+        for x in 0..X {
+            for z in 0..Z {
+                self.vao_buffer
+                    .add_block_with_height(x as i32, z as i32, map[x][z] as i32);
+            }
         }
     }
 }

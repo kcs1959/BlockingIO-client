@@ -36,7 +36,6 @@ use crate::mock_server::Api;
 use crate::mock_server::ApiEvent;
 use crate::setting_storage::Setting;
 use crate::types::*;
-use crate::vao_ex::VaoBuilderEx;
 
 // 64x64ピクセルのテクスチャが4x4個並んでいる
 pub const TEX_W: u32 = 64;
@@ -101,8 +100,7 @@ fn main() {
 
     let mut field = Field::<FIELD_SIZE, FIELD_SIZE>::new();
 
-    let mut stage_vao_builder = VaoBuffer::new();
-    let mut stage_vao = stage_vao_builder.build(&gl, &vao_config);
+    let mut stage_vao = field.render().build(&gl, &vao_config);
 
     const URL: &str = "http://localhost:3000";
     // const URL: &str = "http://13.114.119.94:3000";
@@ -195,10 +193,7 @@ fn main() {
         camera.update_position(frames);
 
         if field_updated {
-            stage_vao_builder = VaoBuffer::new();
-            stage_vao_builder.add_floor(FIELD_SIZE, FIELD_SIZE);
-            field.add_to(&mut stage_vao_builder);
-            stage_vao = stage_vao_builder.build(&gl, &vao_config);
+            stage_vao = field.render().build(&gl, &vao_config);
         }
 
         let mut player_vao_builder = VaoBuffer::new();
