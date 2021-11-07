@@ -4,20 +4,20 @@ use crate::{
 };
 use re::vao::VaoBuffer;
 
-/// 各地点のブロックの高さを保持する構造体
-///
-/// ^ X軸  \
-/// |  \
-/// |  \
-/// |  \
-/// +---------> Z軸
-pub struct Field<const X: usize, const Z: usize> {
+pub struct World<const X: usize, const Z: usize> {
+    /// 各地点のブロックの高さを保持する
+    ///
+    /// ^ X軸  \
+    /// |  \
+    /// |  \
+    /// |  \
+    /// +---------> Z軸
     map: na::SMatrix<i32, X, Z>,
     field_renderer: FieldRenderer<X, Z>,
     player_renderer: PlayerRenderer,
 }
 
-impl Field<FIELD_SIZE, FIELD_SIZE> {
+impl World<FIELD_SIZE, FIELD_SIZE> {
     pub fn new() -> Self {
         Self {
             map: na::SMatrix::<i32, FIELD_SIZE, FIELD_SIZE>::zeros(),

@@ -19,22 +19,22 @@ use uuid::Uuid;
 mod api;
 mod camera;
 mod engine;
-mod field;
 mod mock_server;
 mod player;
 mod setting_storage;
 mod socketio_encoding;
 mod types;
+mod world;
 
 use crate::api::json::DirectionJson;
 use crate::camera::Camera;
 use crate::engine::Engine;
-use crate::field::Field;
-use crate::field::PlayerRenderer;
 use crate::mock_server::Api;
 use crate::mock_server::ApiEvent;
 use crate::setting_storage::Setting;
 use crate::types::*;
+use crate::world::PlayerRenderer;
+use crate::world::World;
 
 // 64x64ピクセルのテクスチャが4x4個並んでいる
 pub const TEX_W: u32 = 64;
@@ -97,10 +97,16 @@ fn main() {
         .specular(Vector3::new(0.2, 0.2, 0.2))
         .build();
 
-    let mut field = Field::<FIELD_SIZE, FIELD_SIZE>::new();
+    let mut world = World::<FIELD_SIZE, FIELD_SIZE>::new();
 
-    let mut stage_vao = field.render_field().build(&gl, &vao_config);
-    let mut player_vao = field.render_players().build(&gl, &vao_config);
+    let mut stage_vao = world.render_field().build(&gl, &vao_config);
+    let mut player_vao = world.render_players().build(&gl, &vao_config);
+
+    let mut own_player_pos: Point3 = Point3::new(0.0, 0.0, 0.0);
+    let mut camera = Camera::new(own_player_pos);
+
+    let mut user_id = setting.uuid;
+    let mut user_name: String = "".to_string();
 
     const URL: &str = "http://localhost:3000";
     // const URL: &str = "http://13.114.119.94:3000";
@@ -110,12 +116,6 @@ fn main() {
         .expect_or_log("サーバーに接続できません");
     api.setup_uid(setting.uuid).expect_or_log("uidを設定できません");
     api.join_room("foo").expect_or_log("ルームに入れません");
-
-    let mut own_player_pos: Point3 = Point3::new(0.0, 0.0, 0.0);
-    let mut camera = Camera::new(own_player_pos);
-
-    let mut user_id = setting.uuid;
-    let mut user_name: String = "".to_string();
 
     // ゲーム開始から現在までのフレーム数。約60フレームで1秒
     let mut frames: u64 = 0;
@@ -147,17 +147,14 @@ fn main() {
             let mut lock = unhandled_events.lock().unwrap_or_log();
             while let Some(event) = lock.pop_front() {
                 match event {
-                    ApiEvent::UpdateField {
-                        players,
-                        field: field_,
-                    } => {
+                    ApiEvent::UpdateField { players, field } => {
                         if let Some(own_player) = find_own_player(&players, user_id) {
-                            own_player_pos = PlayerRenderer::player_world_pos(own_player, &field_);
+                            own_player_pos = PlayerRenderer::player_world_pos(own_player, &field);
                         } else {
                             // TODO: 自機がいないときのカメラの場所
                         }
-                        field.update(field_);
-                        field.set_players(players);
+                        world.update(field);
+                        world.set_players(players);
                         field_updated = true;
                     }
                     ApiEvent::JoinRoom => todo!(),
@@ -191,8 +188,8 @@ fn main() {
         camera.update_position(frames);
 
         if field_updated {
-            stage_vao = field.render_field().build(&gl, &vao_config);
-            player_vao = field.render_players().build(&gl, &vao_config);
+            stage_vao = world.render_field().build(&gl, &vao_config);
+            player_vao = world.render_players().build(&gl, &vao_config);
         }
 
         let (width, height) = engine.window().drawable_size();
