@@ -8,10 +8,12 @@ use crate::gl::types::{GLenum, GLfloat, GLint, GLsizei, GLsizeiptr};
 use crate::gl::Gl;
 use crate::shader::UniformVariables;
 
-use self::vao_config::VaoConfig;
-
-pub mod vao_builder;
-pub mod vao_config;
+pub mod vao_buffer;
+pub use vao_buffer::VaoBuffer;
+mod vao_builder;
+pub use vao_builder::{CuboidTextures, VaoBuilder3DGeometry};
+mod vao_config;
+pub use vao_config::{VaoConfig, VaoConfigBuilder};
 
 /// OpenGLのVertex Array ObjectとVertex Buffer Objectに対応する構造体
 pub struct Vao<'a> {
@@ -123,10 +125,7 @@ impl<'a> Vao<'a> {
                 c_str!("uMaterial.shininess"),
                 &Float(self.config.material_shininess),
             );
-            program.set_uniform(
-                c_str!("uLight.direction"),
-                &Vector3(&self.config.light_direction),
-            );
+            program.set_uniform(c_str!("uLight.direction"), &Vector3(&self.config.light_direction));
             program.set_uniform(c_str!("uLight.ambient"), &Vector3(&self.config.ambient));
             program.set_uniform(c_str!("uLight.diffuse"), &Vector3(&self.config.diffuse));
             program.set_uniform(c_str!("uLight.specular"), &Vector3(&self.config.specular));
