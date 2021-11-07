@@ -125,8 +125,6 @@ pub enum ApiEvent {
         uid: Uuid,
         name: String,
     },
-    JoinRoom,
-    UpdateRoomState,
     UpdateField {
         players: Vec<Player>,
         field: na::SMatrix<i32, FIELD_SIZE, FIELD_SIZE>,

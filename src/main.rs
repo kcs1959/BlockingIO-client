@@ -158,8 +158,6 @@ fn main() {
                         world.set_players(players);
                         world_updated = true;
                     }
-                    ApiEvent::JoinRoom => todo!(),
-                    ApiEvent::UpdateRoomState => todo!(),
                     ApiEvent::UpdateUser { uid, name } => {
                         user_id = uid;
                         user_name = name;
