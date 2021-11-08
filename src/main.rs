@@ -109,8 +109,7 @@ fn main() {
     let mut user_id = setting.uuid;
     let mut user_name: String = "".to_string();
 
-    let mut game_state = GameState::OutOfRoom;
-    let mut ok_to_join_room = false;
+    let mut game_state = GameState::SettingConnection;
 
     // サーバーに接続
     let mut api = Api::new(&setting.server);
@@ -161,17 +160,15 @@ fn main() {
                     ApiEvent::UpdateUser { uid, name } => {
                         user_id = uid;
                         user_name = name;
-                        ok_to_join_room = true;
+                        game_state = GameState::JoiningRoom;
                     }
                 }
             }
         });
 
-        if let GameState::OutOfRoom = game_state {
-            if ok_to_join_room {
-                api.join_room("foo").expect_or_log("ルームに入れません");
-                game_state = GameState::InRoom;
-            }
+        if game_state == GameState::JoiningRoom {
+            api.join_room("foo").expect_or_log("ルームに入れません");
+            game_state = GameState::WaitingInRoom;
         }
 
         // 入力
@@ -247,6 +244,7 @@ fn find_own_player(players: &Vec<Player>, uid: Uuid) -> Option<&Player> {
 
 #[derive(PartialEq)]
 enum GameState {
-    OutOfRoom,
-    InRoom,
+    SettingConnection,
+    JoiningRoom,
+    WaitingInRoom,
 }
