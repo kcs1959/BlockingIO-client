@@ -109,7 +109,7 @@ fn main() {
     let mut user_id = setting.uuid;
     let mut user_name: String = "".to_string();
 
-    let mut game_state = GameState::SettingConnection;
+    let mut client_state = ClientState::SettingConnection;
 
     // サーバーに接続
     let mut api = Api::new(&setting.server);
@@ -160,38 +160,38 @@ fn main() {
                     ApiEvent::UpdateUser { uid, name } => {
                         user_id = uid;
                         user_name = name;
-                        game_state = GameState::JoiningRoom { wait_frames: 0 };
+                        client_state = ClientState::JoiningRoom { wait_frames: 0 };
                     }
                     ApiEvent::RoomStateOpening { room_id, room_name } => {
                         info!("room opening id: {}, name: {}", room_id, room_name);
-                        game_state = GameState::WaitingInRoom
+                        client_state = ClientState::WaitingInRoom
                     }
                     ApiEvent::RoomStateFulfilled { room_id, room_name } => {
                         info!("room fulfilled id: {}, name: {}", room_id, room_name);
-                        game_state = GameState::Playing
+                        client_state = ClientState::Playing
                     }
                     ApiEvent::RoomStateEmpty { .. } => {
                         warn!("room-stateイベントによるとルームはEmptyです");
                     }
                     ApiEvent::RoomStateNotJoined => {
                         info!("ルームから切断されました。約3秒後に再接続します。");
-                        game_state = GameState::JoiningRoom { wait_frames: 60 * 3 };
+                        client_state = ClientState::JoiningRoom { wait_frames: 60 * 3 };
                     }
                 }
             }
         });
 
-        if let GameState::JoiningRoom { wait_frames: 0 } = game_state {
+        if let ClientState::JoiningRoom { wait_frames: 0 } = client_state {
             match api.join_room("foo") {
-                Ok(_) => game_state = GameState::WaitingInRoom,
+                Ok(_) => client_state = ClientState::WaitingInRoom,
                 Err(_) => {
                     warn!("ルームに入れませんでした。約3秒後に再接続します。");
-                    game_state = GameState::JoiningRoom { wait_frames: 60 * 3 };
+                    client_state = ClientState::JoiningRoom { wait_frames: 60 * 3 };
                 }
             }
         }
-        if let GameState::JoiningRoom { wait_frames } = game_state {
-            game_state = GameState::JoiningRoom {
+        if let ClientState::JoiningRoom { wait_frames } = client_state {
+            client_state = ClientState::JoiningRoom {
                 wait_frames: wait_frames - 1,
             }
         }
@@ -268,7 +268,7 @@ fn find_own_player(players: &Vec<Player>, uid: Uuid) -> Option<&Player> {
 }
 
 #[derive(PartialEq)]
-enum GameState {
+enum ClientState {
     SettingConnection,
     JoiningRoom { wait_frames: u32 },
     WaitingInRoom,
