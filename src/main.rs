@@ -109,14 +109,10 @@ fn main() {
     let mut user_id = setting.uuid;
     let mut user_name: String = "".to_string();
 
-    let mut client_state = ClientState::SettingConnection;
+    let mut client_state = ClientState::TitleScreen;
 
-    // サーバーに接続
     let mut api = Api::new(&setting.server);
     let unhandled_events = Arc::new(Mutex::new(VecDeque::new()));
-    api.connect(&unhandled_events)
-        .expect_or_log("サーバーに接続できません");
-    api.setup_uid(setting.uuid).expect_or_log("uidを設定できません");
 
     // ゲーム開始から現在までのフレーム数。約60フレームで1秒
     let mut frames: u64 = 0;
@@ -181,105 +177,148 @@ fn main() {
             }
         });
 
-        if let ClientState::JoiningRoom { wait_frames: 0 } = client_state {
-            match api.join_room("foo") {
-                Ok(_) => client_state = ClientState::WaitingInRoom,
-                Err(_) => {
-                    warn!("ルームに入れませんでした。約3秒後に再接続します。");
-                    client_state = ClientState::JoiningRoom { wait_frames: 60 * 3 };
-                }
-            }
-        }
-        if let ClientState::JoiningRoom { wait_frames } = client_state {
-            tracing::trace!("join-room wait {}", wait_frames);
-            if wait_frames > 0 {
-                client_state = ClientState::JoiningRoom {
-                    wait_frames: wait_frames - 1,
-                }
-            }
-        }
-
-        if let ClientState::GameFinished { ref reason } = client_state {
-            info!("ゲーム終了");
-            match *reason {
-                GameFinishReason::Normal { winner } => {
-                    if let Some(winner) = winner {
-                        info!("勝者は{}", winner);
-                    } else {
-                        info!("引き分け");
-                    }
-                }
-                GameFinishReason::Abnromal => info!("異常終了"),
-            }
-            client_state = ClientState::Quit // TODO: request-after-gameイベントをemit
-        }
-
-        if let ClientState::Quit = client_state {
-            setting.save().expect_or_log("設定ファイルの保存に失敗");
-            break 'main;
-        }
-
-        // 入力
-        let key_state = KeyboardState::new(&engine.event_pump());
-        if key_state.is_scancode_pressed(Scancode::W) || key_state.is_scancode_pressed(Scancode::Up) {
-            api.try_move(&DirectionJson::Up);
-        }
-        if key_state.is_scancode_pressed(Scancode::S) || key_state.is_scancode_pressed(Scancode::Down) {
-            api.try_move(&DirectionJson::Down);
-        }
-        if key_state.is_scancode_pressed(Scancode::D) || key_state.is_scancode_pressed(Scancode::Right) {
-            api.try_move(&DirectionJson::Right);
-        }
-        if key_state.is_scancode_pressed(Scancode::A) || key_state.is_scancode_pressed(Scancode::Left) {
-            api.try_move(&DirectionJson::Left);
-        }
-
-        // カメラ移動
-        if world_updated {
-            camera.shade_to_new_position(own_player_pos, frames, 12);
-        }
-        camera.update_position(frames);
-
-        // 描画用の変数を準備
+        // 画面をクリア
         let (width, height) = engine.window().drawable_size();
-        if world_updated {
-            stage_vao = world.render_field().build(&gl, &vao_config);
-            player_vao = world.render_players().build(&gl, &vao_config);
-        }
-        const SCALE: f32 = 0.5;
-        let model_matrix: Matrix4 = Matrix4::identity().scale(SCALE);
-        let view_matrix: Matrix4 = camera.view_matrix(SCALE);
-        let projection_matrix: Matrix4 = Matrix4::new_perspective(
-            width as f32 / height as f32,
-            std::f32::consts::PI / 4.0f32,
-            0.1,
-            100.0,
-        );
-        let uniforms = {
-            let mut uniforms = UniformVariables::new();
-            use c_str_macro::c_str;
-            use Uniform::*;
-            uniforms.add(c_str!("uModel"), Matrix4(&model_matrix));
-            uniforms.add(c_str!("uView"), Matrix4(&view_matrix));
-            uniforms.add(c_str!("uProjection"), Matrix4(&projection_matrix));
-            uniforms.add(
-                c_str!("uViewPosition"),
-                TripleFloat(camera.pos().x, camera.pos().y, camera.pos().z),
-            );
-            uniforms
-        };
-
-        // 描画
         unsafe {
             gl.Viewport(0, 0, width as i32, height as i32);
 
             gl.ClearColor(1.0, 1.0, 1.0, 1.0);
             gl.Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
-        stage_vao.draw_triangles(&uniforms);
-        player_vao.draw_triangles(&uniforms);
-        engine.window().gl_swap_window();
 
+        match client_state {
+            ClientState::TitleScreen => {
+                let key_state = KeyboardState::new(&engine.event_pump);
+                if key_state.is_scancode_pressed(Scancode::Space) {
+                    client_state = ClientState::SettingConnection
+                }
+            }
+
+            ClientState::SettingConnection => {
+                // サーバーに接続
+                let result = api.connect(&unhandled_events);
+                if let Err(error) = result {
+                    tracing::error!("サーバーに接続できません: {}", error);
+                    client_state = ClientState::TitleScreen;
+                    continue;
+                }
+                let result = api.setup_uid(setting.uuid);
+                if let Err(error) = result {
+                    tracing::error!("uidを設定できません: {}", error);
+                    client_state = ClientState::TitleScreen;
+                    continue;
+                }
+                client_state = ClientState::WaitingSettingUid;
+            }
+
+            ClientState::WaitingSettingUid => {}
+
+            ClientState::JoiningRoom { wait_frames: 0 } => {
+                match api.join_room("foo") {
+                    Ok(_) => {
+                        client_state = ClientState::WaitingInRoom;
+                    }
+                    Err(_) => {
+                        warn!("ルームに入れませんでした。約3秒後に再接続します。");
+                        client_state = ClientState::JoiningRoom { wait_frames: 60 * 3 };
+                    }
+                };
+            }
+
+            ClientState::JoiningRoom { wait_frames } => {
+                tracing::trace!("join-room wait {}", wait_frames);
+                client_state = ClientState::JoiningRoom {
+                    wait_frames: wait_frames - 1,
+                };
+            }
+
+            ClientState::WaitingInRoom => {}
+
+            ClientState::Playing => {
+                // 入力
+                let key_state = KeyboardState::new(&engine.event_pump());
+                if key_state.is_scancode_pressed(Scancode::W)
+                    || key_state.is_scancode_pressed(Scancode::Up)
+                {
+                    api.try_move(&DirectionJson::Up);
+                }
+                if key_state.is_scancode_pressed(Scancode::S)
+                    || key_state.is_scancode_pressed(Scancode::Down)
+                {
+                    api.try_move(&DirectionJson::Down);
+                }
+                if key_state.is_scancode_pressed(Scancode::D)
+                    || key_state.is_scancode_pressed(Scancode::Right)
+                {
+                    api.try_move(&DirectionJson::Right);
+                }
+                if key_state.is_scancode_pressed(Scancode::A)
+                    || key_state.is_scancode_pressed(Scancode::Left)
+                {
+                    api.try_move(&DirectionJson::Left);
+                }
+
+                // カメラ移動
+                if world_updated {
+                    camera.shade_to_new_position(own_player_pos, frames, 12);
+                }
+                camera.update_position(frames);
+
+                // 描画用の変数を準備
+                if world_updated {
+                    stage_vao = world.render_field().build(&gl, &vao_config);
+                    player_vao = world.render_players().build(&gl, &vao_config);
+                }
+                const SCALE: f32 = 0.5;
+                let model_matrix: Matrix4 = Matrix4::identity().scale(SCALE);
+                let view_matrix: Matrix4 = camera.view_matrix(SCALE);
+                let projection_matrix: Matrix4 = Matrix4::new_perspective(
+                    width as f32 / height as f32,
+                    std::f32::consts::PI / 4.0f32,
+                    0.1,
+                    100.0,
+                );
+                let uniforms = {
+                    let mut uniforms = UniformVariables::new();
+                    use c_str_macro::c_str;
+                    use Uniform::*;
+                    uniforms.add(c_str!("uModel"), Matrix4(&model_matrix));
+                    uniforms.add(c_str!("uView"), Matrix4(&view_matrix));
+                    uniforms.add(c_str!("uProjection"), Matrix4(&projection_matrix));
+                    uniforms.add(
+                        c_str!("uViewPosition"),
+                        TripleFloat(camera.pos().x, camera.pos().y, camera.pos().z),
+                    );
+                    uniforms
+                };
+
+                // 描画
+                stage_vao.draw_triangles(&uniforms);
+                player_vao.draw_triangles(&uniforms);
+            }
+
+            ClientState::GameFinished { ref reason } => {
+                info!("ゲーム終了");
+                match *reason {
+                    GameFinishReason::Normal { winner } => {
+                        if let Some(winner) = winner {
+                            info!("勝者は{}", winner);
+                        } else {
+                            info!("引き分け");
+                        }
+                    }
+                    GameFinishReason::Abnromal => info!("異常終了"),
+                }
+                client_state = ClientState::Quit; // TODO: request-after-gameイベントをemit
+            }
+
+            ClientState::Quit => {
+                setting.save().expect_or_log("設定ファイルの保存に失敗");
+                break 'main;
+            }
+        }
+
+        engine.window().gl_swap_window();
         std::thread::sleep(std::time::Duration::new(0, 1_000_000_000u32 / 60)); // 60FPS
     }
 }
@@ -292,11 +331,21 @@ fn find_own_player(players: &Vec<Player>, uid: Uuid) -> Option<&Player> {
 
 #[derive(PartialEq)]
 enum ClientState {
+    /// タイトル画面
+    TitleScreen,
+    /// サーバーに接続してsetup-uidすべき状態
     SettingConnection,
+    /// on-update-userイベントを待っている状態
+    WaitingSettingUid,
+    /// `wait_frames`フレーム後にjoin-roomすべき状態
     JoiningRoom { wait_frames: u32 },
+    /// ルームに入っていて、ゲーム開始を待っている状態
     WaitingInRoom,
+    /// ゲーム中
     Playing,
+    /// ゲームが終了して、結果を表示している状態
     GameFinished { reason: GameFinishReason },
+    /// アプリケーションを終了すべき状態
     Quit,
 }
 
