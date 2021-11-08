@@ -1,18 +1,18 @@
 digraph ClientState {
   graph [
     charset = "UTF-8"
-    label = "ClientState 遷移図 (2021年11月8日)"
-    labelloc = t
-    labeljust = c
-    rankdir = TB
-    layout = dot
   ];
+  label = "ClientState 遷移図 (2021年11月8日)"
+  labelloc = t
+  labeljust = c
+  rankdir = TB
+  layout = dot
+  
   node [
     fontname = "HackGen, Consolas, monospace"
     shape = ellipse
     style = filled
     fillcolor = "#cfecff"
-    color = white
   ];
   edge [];
 
@@ -31,10 +31,9 @@ digraph ClientState {
   Quit [ 
     shape=doublecircle
     fontcolor = white
-    color = "#17a6ff"
     fillcolor = "#17a6ff"  
   ];
-
+  any [ label = "*" ];
 
 
   TitleScreen -> SettingConnection [
@@ -61,12 +60,12 @@ digraph ClientState {
     label = "join-roomが失敗"
   ];
 
-  JoiningRoomN:n -> JoiningRoomN:n [
-    label = "wait_framesが0でない間\nwait_frames--"
+  JoiningRoomN -> JoiningRoom0 [
+    label="wait_frames == 0"
   ];
 
-  JoiningRoomN -> JoiningRoom0[
-    label="wait_frames == 0"
+  JoiningRoomN:s -> JoiningRoomN:s [
+    label = "wait_framesが0でない間\nwait_frames--"
   ];
 
   WaitingInRoom -> Playing [
@@ -81,7 +80,13 @@ digraph ClientState {
     label = "ApiEvent::GameFinished"
   ];
 
-  GameFinished -> Quit [
+  GameFinished:e -> TitleScreen [
     label = "勝敗を(コンソールに)表示"
+  ];
+
+
+
+  any -> Quit [
+    label = "Alt + F4"
   ];
 }

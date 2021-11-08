@@ -334,7 +334,7 @@ fn main() {
                     }
                     GameFinishReason::Abnromal => info!("異常終了"),
                 }
-                client_state = ClientState::Quit; // TODO: request-after-gameイベントをemit
+                client_state = ClientState::TitleScreen; // TODO: request-after-gameイベントをemit
             }
 
             ClientState::Quit => {
