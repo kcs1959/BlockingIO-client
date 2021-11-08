@@ -155,6 +155,7 @@ impl Api {
     }
 }
 
+#[derive(Debug)]
 pub enum ApiEvent {
     UpdateUser {
         uid: Uuid,

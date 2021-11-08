@@ -1,6 +1,7 @@
 use crate::types::*;
 use uuid::Uuid;
 
+#[derive(Debug)]
 pub struct Player {
     pub pos: Point2i,
     pub uid: Uuid,

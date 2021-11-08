@@ -141,37 +141,62 @@ fn main() {
             while let Some(event) = lock.pop_front() {
                 match event {
                     ApiEvent::UpdateUser { uid, name } => {
-                        user_id = uid;
-                        user_name = name;
-                        client_state = ClientState::JoiningRoom { wait_frames: 0 };
+                        if client_state == ClientState::WaitingSettingUid {
+                            user_id = uid;
+                            user_name = name;
+                            client_state = ClientState::JoiningRoom { wait_frames: 0 };
+                        } else {
+                            warn!(
+                                "unexpected event ApiEvent::UpdateUser uid:{}. state: {:?}",
+                                uid, client_state
+                            );
+                        }
                     }
                     ApiEvent::RoomStateOpening { room_id, room_name } => {
                         info!("room opening id: {}, name: {}", room_id, room_name);
-                        client_state = ClientState::WaitingInRoom
                     }
                     ApiEvent::RoomStateFulfilled { room_id, room_name } => {
-                        info!("room fulfilled id: {}, name: {}", room_id, room_name);
-                        client_state = ClientState::Playing
+                        if client_state == ClientState::WaitingInRoom {
+                            info!("room fulfilled id: {}, name: {}", room_id, room_name);
+                            client_state = ClientState::Playing;
+                        } else {
+                            warn!(
+                                "unexpected event ApiEvent::RoomStateFulfilled room_id: {}, room_name: {}. state: {:?}",
+                                 room_id, room_name ,
+                                client_state
+                            );
+                        }
                     }
                     ApiEvent::RoomStateEmpty { .. } => {
                         warn!("room-stateイベントによるとルームはEmptyです");
                     }
                     ApiEvent::RoomStateNotJoined => {
-                        info!("ルームから切断されました。約3秒後に再接続します。");
-                        client_state = ClientState::JoiningRoom { wait_frames: 60 * 3 };
+                        info!("ルームから切断されました。");
+                        client_state = ClientState::TitleScreen;
                     }
                     ApiEvent::UpdateField { players, field } => {
-                        if let Some(own_player) = find_own_player(&players, user_id) {
-                            own_player_pos = world.player_world_pos(own_player);
+                        if client_state == ClientState::Playing {
+                            if let Some(own_player) = find_own_player(&players, user_id) {
+                                own_player_pos = world.player_world_pos(own_player);
+                            } else {
+                                // TODO: 自機がいないときのカメラの場所
+                            }
+                            world.update(field);
+                            world.set_players(players);
+                            world_updated = true;
                         } else {
-                            // TODO: 自機がいないときのカメラの場所
+                            warn!(
+                                "unexpected event ApiEvent::UpdateField. state: {:?}",
+                                client_state
+                            );
                         }
-                        world.update(field);
-                        world.set_players(players);
-                        world_updated = true;
                     }
                     ApiEvent::GameFinished { reason } => {
-                        client_state = ClientState::GameFinished { reason }
+                        if client_state == ClientState::Playing {
+                            client_state = ClientState::GameFinished { reason };
+                        }else {
+                            warn!("unexpected event ApiEvent::GameFinished reason: {:?}. state: {:?}", reason, client_state);
+                        }
                     }
                 }
             }
@@ -329,7 +354,7 @@ fn find_own_player(players: &Vec<Player>, uid: Uuid) -> Option<&Player> {
     players.iter().find(|player| player.uid == uid)
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 enum ClientState {
     /// タイトル画面
     TitleScreen,
@@ -349,7 +374,7 @@ enum ClientState {
     Quit,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub enum GameFinishReason {
     Normal { winner: Option<Uuid> },
     Abnromal,
