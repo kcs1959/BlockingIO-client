@@ -19,7 +19,7 @@ use crate::{
     },
     player::Player,
     types::*,
-    FIELD_SIZE,
+    GameFinishReason, FIELD_SIZE,
 };
 
 pub struct Api {
@@ -83,27 +83,39 @@ impl Api {
                     debug!("{} event", event::UPDATE_FIELD);
                     let json: UpdateFieldJson =
                         serde_json::from_slice(&payload.to_utf8_bytes()).unwrap_or_log();
+                    let event = match json.state {
+                        crate::api::json::GameStatusJson::BeforeStart
+                        | crate::api::json::GameStatusJson::PendingStart => return,
+                        crate::api::json::GameStatusJson::InGame => {
+                            let mut players = Vec::new();
+                            for player in &json.player_list {
+                                let player = Player::new(
+                                    Point2i::new(
+                                        FIELD_SIZE as i32 - 1 - player.position.row,
+                                        player.position.column,
+                                    ),
+                                    player.uid,
+                                    player.name.clone(),
+                                );
+                                players.push(player);
+                            }
 
-                    let mut players = Vec::new();
-                    for player in &json.player_list {
-                        let player = Player::new(
-                            Point2i::new(
-                                FIELD_SIZE as i32 - 1 - player.position.row,
-                                player.position.column,
-                            ),
-                            player.uid,
-                            player.name.clone(),
-                        );
-                        players.push(player);
-                    }
+                            debug_assert_eq!(json.battle_field.length, FIELD_SIZE as i32);
+                            let field = make_height_matrix(json.battle_field.squares);
 
-                    debug_assert_eq!(json.battle_field.length, FIELD_SIZE as i32);
-                    let field = make_height_matrix(json.battle_field.squares);
+                            ApiEvent::UpdateField { players, field }
+                        }
+                        crate::api::json::GameStatusJson::Finish => ApiEvent::GameFinished {
+                            reason: GameFinishReason::Normal {
+                                winner: json.winner.map(|winner| winner.uid),
+                            },
+                        },
+                        crate::api::json::GameStatusJson::AbnormalEnd => ApiEvent::GameFinished {
+                            reason: GameFinishReason::Abnromal,
+                        },
+                    };
 
-                    queue_update_field
-                        .lock()
-                        .unwrap_or_log()
-                        .push_back(ApiEvent::UpdateField { players, field });
+                    queue_update_field.lock().unwrap_or_log().push_back(event);
                 })
                 .connect()?,
         );
@@ -166,6 +178,9 @@ pub enum ApiEvent {
     UpdateField {
         players: Vec<Player>,
         field: na::SMatrix<i32, FIELD_SIZE, FIELD_SIZE>,
+    },
+    GameFinished {
+        reason: GameFinishReason,
     },
 }
 

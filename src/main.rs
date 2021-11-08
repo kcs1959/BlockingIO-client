@@ -147,16 +147,6 @@ fn main() {
             let mut lock = unhandled_events.lock().unwrap_or_log();
             while let Some(event) = lock.pop_front() {
                 match event {
-                    ApiEvent::UpdateField { players, field } => {
-                        if let Some(own_player) = find_own_player(&players, user_id) {
-                            own_player_pos = world.player_world_pos(own_player);
-                        } else {
-                            // TODO: 自機がいないときのカメラの場所
-                        }
-                        world.update(field);
-                        world.set_players(players);
-                        world_updated = true;
-                    }
                     ApiEvent::UpdateUser { uid, name } => {
                         user_id = uid;
                         user_name = name;
@@ -176,6 +166,19 @@ fn main() {
                     ApiEvent::RoomStateNotJoined => {
                         info!("ルームから切断されました。約3秒後に再接続します。");
                         client_state = ClientState::JoiningRoom { wait_frames: 60 * 3 };
+                    }
+                    ApiEvent::UpdateField { players, field } => {
+                        if let Some(own_player) = find_own_player(&players, user_id) {
+                            own_player_pos = world.player_world_pos(own_player);
+                        } else {
+                            // TODO: 自機がいないときのカメラの場所
+                        }
+                        world.update(field);
+                        world.set_players(players);
+                        world_updated = true;
+                    }
+                    ApiEvent::GameFinished { reason } => {
+                        client_state = ClientState::GameFinished { reason }
                     }
                 }
             }
@@ -273,4 +276,11 @@ enum ClientState {
     JoiningRoom { wait_frames: u32 },
     WaitingInRoom,
     Playing,
+    GameFinished { reason: GameFinishReason },
+}
+
+#[derive(PartialEq)]
+pub enum GameFinishReason {
+    Normal { winner: Option<Uuid> },
+    Abnromal,
 }
