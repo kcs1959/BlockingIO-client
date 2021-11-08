@@ -13,7 +13,10 @@ use uuid::Uuid;
 use tracing::{debug, error, info, trace};
 
 use crate::{
-    api::json::{DirectionJson, OnUpdateUserJson, SetupUidJson, SquareJson, UpdateFieldJson},
+    api::json::{
+        DirectionJson, OnUpdateUserJson, RoomStateEventJson, RoomStateJson, SetupUidJson, SquareJson,
+        UpdateFieldJson,
+    },
     player::Player,
     types::*,
     FIELD_SIZE,
@@ -38,6 +41,7 @@ impl Api {
         queue: &Arc<Mutex<VecDeque<ApiEvent>>>,
     ) -> Result<(), rust_socketio::error::Error> {
         let queue_update_user = Arc::clone(queue);
+        let queue_room_state = Arc::clone(queue);
         let queue_update_field = Arc::clone(queue);
 
         info!("connecting server");
@@ -54,9 +58,26 @@ impl Api {
                     };
                     queue_update_user.lock().unwrap_or_log().push_back(event);
                 })
-                .on(event::ROOM_STATE, |payload, _socket| {
+                .on(event::ROOM_STATE, move |payload, _socket| {
                     debug!("{} event", event::ROOM_STATE);
-                    print_payload(&payload);
+                    let json: RoomStateEventJson =
+                        serde_json::from_slice(&payload.to_utf8_bytes()).unwrap_or_log();
+                    let event = match json.state {
+                        RoomStateJson::Opening => ApiEvent::RoomStateOpening {
+                            room_id: json.roomId.unwrap_or_log(),
+                            room_name: json.roomname.unwrap_or_log(),
+                        },
+                        RoomStateJson::Fulfilled => ApiEvent::RoomStateFulfilled {
+                            room_id: json.roomId.unwrap_or_log(),
+                            room_name: json.roomname.unwrap_or_log(),
+                        },
+                        RoomStateJson::Empty => ApiEvent::RoomStateEmpty {
+                            room_id: json.roomId.unwrap_or_log(),
+                            room_name: json.roomname.unwrap_or_log(),
+                        },
+                        RoomStateJson::notJoining => ApiEvent::RoomStateNotJoined,
+                    };
+                    queue_room_state.lock().unwrap_or_log().push_back(event);
                 })
                 .on(event::UPDATE_FIELD, move |payload, _| {
                     debug!("{} event", event::UPDATE_FIELD);
@@ -127,6 +148,21 @@ pub enum ApiEvent {
         uid: Uuid,
         name: String,
     },
+    RoomStateOpening {
+        room_id: String,
+        room_name: String,
+    },
+    RoomStateFulfilled {
+        room_id: String,
+        room_name: String,
+    },
+    /// クライアントに送られてくることはないはず
+    RoomStateEmpty {
+        room_id: String,
+        room_name: String,
+    },
+    /// 入っていたルームが閉じられるなどして、ルームから追い出された状態
+    RoomStateNotJoined,
     UpdateField {
         players: Vec<Player>,
         field: na::SMatrix<i32, FIELD_SIZE, FIELD_SIZE>,

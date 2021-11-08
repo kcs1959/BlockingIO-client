@@ -13,7 +13,6 @@ use re::shader::Uniform;
 use re::shader::UniformVariables;
 use re::texture::texture_atlas::TextureAtlasPos;
 use re::vao::VaoConfigBuilder;
-use tracing::warn;
 use uuid::Uuid;
 
 mod api;
@@ -50,7 +49,7 @@ const TEX_BLOCK_SAFE: TextureAtlasPos = TextureAtlasPos::new(0, 3);
 const FIELD_SIZE: usize = 32;
 
 fn main() {
-    use tracing::info;
+    use tracing::{info, warn};
 
     {
         let level = if std::env::var("BLKIO_TRACE").unwrap_or("".to_string()) == "1" {
@@ -163,6 +162,20 @@ fn main() {
                         user_name = name;
                         game_state = GameState::JoiningRoom { wait_frames: 0 };
                     }
+                    ApiEvent::RoomStateOpening { room_id, room_name } => {
+                        info!("room opening id: {}, name: {}", room_id, room_name);
+                        game_state = GameState::WaitingInRoom
+                    }
+                    ApiEvent::RoomStateFulfilled { room_id, room_name } => {
+                        info!("room fulfilled id: {}, name: {}", room_id, room_name);
+                        game_state = GameState::Playing
+                    }
+                    ApiEvent::RoomStateEmpty { .. } => {
+                        warn!("room-stateイベントによるとルームはEmptyです");
+                    }
+                    ApiEvent::RoomStateNotJoined => {
+                        info!("ルームから切断されました。約3秒後に再接続します。");
+                        game_state = GameState::JoiningRoom { wait_frames: 60 * 3 };
                     }
                 }
             }
@@ -259,4 +272,5 @@ enum GameState {
     SettingConnection,
     JoiningRoom { wait_frames: u32 },
     WaitingInRoom,
+    Playing,
 }
