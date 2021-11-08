@@ -133,10 +133,7 @@ fn main() {
 
             use sdl2::event::Event;
             match event {
-                Event::Quit { .. } => {
-                    setting.save().expect_or_log("設定ファイルの保存に失敗");
-                    break 'main;
-                }
+                Event::Quit { .. } => client_state = ClientState::Quit,
                 _ => {}
             }
         }
@@ -197,6 +194,26 @@ fn main() {
             client_state = ClientState::JoiningRoom {
                 wait_frames: wait_frames - 1,
             }
+        }
+
+        if let ClientState::GameFinished { ref reason } = client_state {
+            info!("ゲーム終了");
+            match *reason {
+                GameFinishReason::Normal { winner } => {
+                    if let Some(winner) = winner {
+                        info!("勝者は{}", winner);
+                    } else {
+                        info!("引き分け");
+                    }
+                }
+                GameFinishReason::Abnromal => info!("異常終了"),
+            }
+            client_state = ClientState::Quit // TODO: request-after-gameイベントをemit
+        }
+
+        if let ClientState::Quit = client_state {
+            setting.save().expect_or_log("設定ファイルの保存に失敗");
+            break 'main;
         }
 
         // 入力
@@ -277,6 +294,7 @@ enum ClientState {
     WaitingInRoom,
     Playing,
     GameFinished { reason: GameFinishReason },
+    Quit,
 }
 
 #[derive(PartialEq)]
