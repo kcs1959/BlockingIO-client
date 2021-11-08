@@ -191,8 +191,11 @@ fn main() {
             }
         }
         if let ClientState::JoiningRoom { wait_frames } = client_state {
-            client_state = ClientState::JoiningRoom {
-                wait_frames: wait_frames - 1,
+            tracing::trace!("join-room wait {}", wait_frames);
+            if wait_frames > 0 {
+                client_state = ClientState::JoiningRoom {
+                    wait_frames: wait_frames - 1,
+                }
             }
         }
 
