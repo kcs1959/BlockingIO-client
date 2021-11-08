@@ -13,6 +13,7 @@ use re::shader::Uniform;
 use re::shader::UniformVariables;
 use re::texture::texture_atlas::TextureAtlasPos;
 use re::vao::VaoConfigBuilder;
+use tracing::warn;
 use uuid::Uuid;
 
 mod api;
@@ -160,15 +161,26 @@ fn main() {
                     ApiEvent::UpdateUser { uid, name } => {
                         user_id = uid;
                         user_name = name;
-                        game_state = GameState::JoiningRoom;
+                        game_state = GameState::JoiningRoom { wait_frames: 0 };
+                    }
                     }
                 }
             }
         });
 
-        if game_state == GameState::JoiningRoom {
-            api.join_room("foo").expect_or_log("ルームに入れません");
-            game_state = GameState::WaitingInRoom;
+        if let GameState::JoiningRoom { wait_frames: 0 } = game_state {
+            match api.join_room("foo") {
+                Ok(_) => game_state = GameState::WaitingInRoom,
+                Err(_) => {
+                    warn!("ルームに入れませんでした。約3秒後に再接続します。");
+                    game_state = GameState::JoiningRoom { wait_frames: 60 * 3 };
+                }
+            }
+        }
+        if let GameState::JoiningRoom { wait_frames } = game_state {
+            game_state = GameState::JoiningRoom {
+                wait_frames: wait_frames - 1,
+            }
         }
 
         // 入力
@@ -245,6 +257,6 @@ fn find_own_player(players: &Vec<Player>, uid: Uuid) -> Option<&Player> {
 #[derive(PartialEq)]
 enum GameState {
     SettingConnection,
-    JoiningRoom,
+    JoiningRoom { wait_frames: u32 },
     WaitingInRoom,
 }
