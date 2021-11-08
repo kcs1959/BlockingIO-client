@@ -1,0 +1,87 @@
+digraph ClientState {
+  graph [
+    charset = "UTF-8"
+    label = "ClientState 遷移図 (2021年11月8日)"
+    labelloc = t
+    labeljust = c
+    rankdir = TB
+    layout = dot
+  ];
+  node [
+    fontname = "HackGen, Consolas, monospace"
+    shape = ellipse
+    style = filled
+    fillcolor = "#cfecff"
+    color = white
+  ];
+  edge [];
+
+  TitleScreen [
+    fontcolor = white
+    fillcolor = "#17a6ff" 
+  ];
+  SettingConnection;
+  WaitingSettingUid;
+  JoiningRoom0 [ label = "JoiningRoom{wait_frames=0}" ];
+  JoiningRoomN [ label = "JoiningRoom{wait_frames>0}" ];
+  {rank = same; JoiningRoom0; JoiningRoomN;}
+  WaitingInRoom;
+  Playing;
+  GameFinished [ label = "GameFinished{reason}" ];
+  Quit [ 
+    shape=doublecircle
+    fontcolor = white
+    color = "#17a6ff"
+    fillcolor = "#17a6ff"  
+  ];
+
+
+
+  TitleScreen -> SettingConnection [
+    label = "スペースキー"
+  ];
+
+  SettingConnection -> TitleScreen [
+    label = "接続失敗"
+  ];
+
+  SettingConnection -> WaitingSettingUid [
+    label = "connect & setup-uid"
+  ];
+
+  WaitingSettingUid -> JoiningRoom0 [
+    label = "ApiEvent::UpdateUser"
+  ];
+
+  JoiningRoom0 -> WaitingInRoom [
+    label = "join-roomが成功"
+  ];
+
+  JoiningRoom0 -> JoiningRoomN [
+    label = "join-roomが失敗"
+  ];
+
+  JoiningRoomN:n -> JoiningRoomN:n [
+    label = "wait_framesが0でない間\nwait_frames--"
+  ];
+
+  JoiningRoomN -> JoiningRoom0[
+    label="wait_frames == 0"
+  ];
+
+  WaitingInRoom -> Playing [
+    label = "ApiEvent::RoomStateFulfilled"
+  ];
+
+  Playing -> Playing [
+    label = "ApiEvent::UpdateField"
+  ];
+
+  Playing -> GameFinished [
+    label = "ApiEvent::GameFinished"
+  ];
+
+  GameFinished -> Quit [
+    label = "勝敗を(コンソールに)表示"
+  ];
+}
