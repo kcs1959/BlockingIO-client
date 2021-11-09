@@ -3,20 +3,23 @@ use std::path::Path;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-use re::gui::layout::Rect;
-use re::texture::dynamic_texture_atlas::DynamicTextureUV;
-use re::vao::VaoBuffer;
 use sdl2::keyboard::KeyboardState;
 use sdl2::keyboard::Scancode;
+use uuid::Uuid;
 
 use re::gl;
+use re::gui::layout::Origin;
+use re::gui::layout::Position;
+use re::gui::layout::Rect;
 use re::shader::Program;
 use re::shader::Shader;
 use re::shader::Uniform;
 use re::shader::UniformVariables;
+use re::texture::dynamic_texture_atlas::DynamicTextureUV;
 use re::texture::texture_atlas::TextureAtlasPos;
+use re::vao::Vao;
+use re::vao::VaoBuffer;
 use re::vao::VaoConfigBuilder;
-use uuid::Uuid;
 
 mod api;
 mod camera;
@@ -48,6 +51,14 @@ const TEX_BLOCK_TOP: TextureAtlasPos = TextureAtlasPos::new(0, 0);
 const TEX_PLAYER_TMP: TextureAtlasPos = TextureAtlasPos::new(0, 1);
 const TEX_BLOCK_DANGER: TextureAtlasPos = TextureAtlasPos::new(0, 2);
 const TEX_BLOCK_SAFE: TextureAtlasPos = TextureAtlasPos::new(0, 3);
+
+const TEX_TITLE_BLOCKING_IO: Rect<i32, u32> = Rect::new_const(88, 0, 190, 38);
+const TEX_スペースキーでスタート: Rect<i32, u32> = Rect::new_const(0, 0, 88, 12);
+const TEX_勝ち: Rect<i32, u32> = Rect::new_const(0, 12, 64, 12);
+const TEX_負け: Rect<i32, u32> = Rect::new_const(0, 24, 64, 12);
+const TEX_待機中: Rect<i32, u32> = Rect::new_const(0, 36, 52, 12);
+const TEX_接続中: Rect<i32, u32> = Rect::new_const(0, 48, 36, 12);
+const TEX_引き分け: Rect<i32, u32> = Rect::new_const(0, 72, 64, 12);
 
 const FIELD_SIZE: usize = 32;
 
@@ -94,16 +105,20 @@ fn main() {
         "テクスチャのサイズが想定と違います"
     );
 
-    let title_texture = engine
+    let gui_texture = engine
         .image_manager
-        .load_image(Path::new("rsc/textures/title.png"), "title", false)
+        .load_image(Path::new("rsc/textures/title.png"), "gui", false)
         .unwrap_or_log();
 
-    let tex_title = DynamicTextureUV::new(
-        &Rect::new(0_i32, 0_i32, title_texture.width, title_texture.height),
-        title_texture.width,
-        title_texture.height,
-    );
+    let tex_title = DynamicTextureUV::new(&TEX_TITLE_BLOCKING_IO, gui_texture.width, gui_texture.height);
+    let tex_スペースキーでスタート =
+        DynamicTextureUV::new(&TEX_スペースキーでスタート, gui_texture.width, gui_texture.height);
+    let tex_勝ち = DynamicTextureUV::new(&TEX_勝ち, gui_texture.width, gui_texture.height);
+    let tex_負け = DynamicTextureUV::new(&TEX_負け, gui_texture.width, gui_texture.height);
+    let tex_待機中 = DynamicTextureUV::new(&TEX_待機中, gui_texture.width, gui_texture.height);
+    let tex_接続中 = DynamicTextureUV::new(&TEX_接続中, gui_texture.width, gui_texture.height);
+    let tex_引き分け = DynamicTextureUV::new(&TEX_引き分け, gui_texture.width, gui_texture.height);
+
     info!("load texture");
 
     let mut world = World::<FIELD_SIZE, FIELD_SIZE>::new();
@@ -121,7 +136,7 @@ fn main() {
     let mut stage_vao = world.render_field().build(&gl, &vao_config);
     let mut player_vao = world.render_players().build(&gl, &vao_config);
 
-    let gui_vao_config = VaoConfigBuilder::new(&shader_gui).texture(&title_texture).build();
+    let gui_vao_config = VaoConfigBuilder::new(&shader_gui).texture(&gui_texture).build();
     let mut gui_vao_buffer = VaoBuffer::new();
     let mut gui_vao;
 
@@ -238,18 +253,31 @@ fn main() {
         match client_state {
             ClientState::TitleScreen => {
                 gui_vao_buffer.clear();
-                gui_vao_buffer.add_rectangle(&tex_title, &Rect::<i32, u32>::new(0, 0, width, height));
-                gui_vao = gui_vao_buffer.build(&gl, &gui_vao_config);
+                gui_vao_buffer.add_layout_rectangle(
+                    &tex_title,
+                    width,
+                    height,
+                    &Origin::Center,
+                    &Position::Center(0),
+                    &Position::Center((height as f32 * -0.2) as i32),
+                    (width as f32 * 0.8) as u32,
+                    (width as f32 * 0.8) as u32 / *TEX_TITLE_BLOCKING_IO.width()
+                        * *TEX_TITLE_BLOCKING_IO.height(),
+                );
+                gui_vao_buffer.add_layout_rectangle(
+                    &tex_スペースキーでスタート,
+                    width,
+                    height,
+                    &Origin::Center,
+                    &Position::Center(0),
+                    &Position::Negative((height as f32 * 0.2) as i32),
+                    (width as f32 * 0.4) as u32,
+                    (width as f32 * 0.4) as u32 / *TEX_スペースキーでスタート.width()
+                        * *TEX_スペースキーでスタート.height(),
+                );
 
-                let uniforms = {
-                    let mut uniforms = UniformVariables::new();
-                    use c_str_macro::c_str;
-                    use Uniform::*;
-                    uniforms.add(c_str!("uWidth"), Float(width as f32));
-                    uniforms.add(c_str!("uHeight"), Float(height as f32));
-                    uniforms
-                };
-                gui_vao.draw_triangles(&uniforms);
+                gui_vao = gui_vao_buffer.build(&gl, &gui_vao_config);
+                render_gui_vao(&gui_vao, width, height);
 
                 let key_state = KeyboardState::new(&engine.event_pump);
                 if key_state.is_scancode_pressed(Scancode::Space) {
@@ -274,7 +302,22 @@ fn main() {
                 client_state = ClientState::WaitingSettingUid;
             }
 
-            ClientState::WaitingSettingUid => {}
+            ClientState::WaitingSettingUid => {
+                gui_vao_buffer.clear();
+                gui_vao_buffer.add_layout_rectangle(
+                    &tex_接続中,
+                    width,
+                    height,
+                    &Origin::Center,
+                    &Position::Center(0),
+                    &Position::Center(0),
+                    TEX_接続中.width() * 3,
+                    TEX_接続中.height() * 3,
+                );
+
+                gui_vao = gui_vao_buffer.build(&gl, &gui_vao_config);
+                render_gui_vao(&gui_vao, width, height);
+            }
 
             ClientState::JoiningRoom { wait_frames: 0 } => {
                 match api.join_room("foo") {
@@ -293,9 +336,38 @@ fn main() {
                 client_state = ClientState::JoiningRoom {
                     wait_frames: wait_frames - 1,
                 };
+                gui_vao_buffer.clear();
+                gui_vao_buffer.add_layout_rectangle(
+                    &tex_接続中,
+                    width,
+                    height,
+                    &Origin::Center,
+                    &Position::Center(0),
+                    &Position::Center(0),
+                    TEX_接続中.width() * 3,
+                    TEX_接続中.height() * 3,
+                );
+
+                gui_vao = gui_vao_buffer.build(&gl, &gui_vao_config);
+                render_gui_vao(&gui_vao, width, height);
             }
 
-            ClientState::WaitingInRoom => {}
+            ClientState::WaitingInRoom => {
+                gui_vao_buffer.clear();
+                gui_vao_buffer.add_layout_rectangle(
+                    &tex_待機中,
+                    width,
+                    height,
+                    &Origin::Center,
+                    &Position::Center(0),
+                    &Position::Center(0),
+                    TEX_待機中.width() * 3,
+                    TEX_待機中.height() * 3,
+                );
+
+                gui_vao = gui_vao_buffer.build(&gl, &gui_vao_config);
+                render_gui_vao(&gui_vao, width, height);
+            }
 
             ClientState::Playing => {
                 // 入力
@@ -361,18 +433,81 @@ fn main() {
             }
 
             ClientState::GameFinished { ref reason } => {
-                info!("ゲーム終了");
-                match *reason {
+                let (tex, tex_rect) = match *reason {
                     GameFinishReason::Normal { winner } => {
                         if let Some(winner) = winner {
-                            info!("勝者は{}", winner);
+                            if winner == user_id {
+                                (&tex_勝ち, TEX_勝ち)
+                            } else {
+                                (&tex_負け, TEX_負け)
+                            }
                         } else {
-                            info!("引き分け");
+                            (&tex_引き分け, TEX_引き分け)
                         }
                     }
-                    GameFinishReason::Abnromal => info!("異常終了"),
+                    GameFinishReason::Abnromal => (&tex_引き分け, TEX_引き分け),
+                };
+
+                gui_vao_buffer.clear();
+                gui_vao_buffer.add_layout_rectangle(
+                    tex,
+                    width,
+                    height,
+                    &Origin::Center,
+                    &Position::Center(0),
+                    &Position::Center(0),
+                    tex_rect.width() * 3,
+                    tex_rect.height() * 3,
+                );
+                gui_vao_buffer.add_layout_rectangle(
+                    &tex_スペースキーでスタート,
+                    width,
+                    height,
+                    &Origin::Center,
+                    &Position::Center(0),
+                    &Position::Negative((height as f32 * 0.2) as i32),
+                    (width as f32 * 0.4) as u32,
+                    (width as f32 * 0.4) as u32 / *TEX_スペースキーでスタート.width()
+                        * *TEX_スペースキーでスタート.height(),
+                );
+
+                // TODO: コピペ
+                {
+                    const SCALE: f32 = 0.5;
+                    let model_matrix: Matrix4 = Matrix4::identity().scale(SCALE);
+                    let view_matrix: Matrix4 = camera.view_matrix(SCALE);
+                    let projection_matrix: Matrix4 = Matrix4::new_perspective(
+                        width as f32 / height as f32,
+                        std::f32::consts::PI / 4.0f32,
+                        0.1,
+                        100.0,
+                    );
+                    let uniforms = {
+                        let mut uniforms = UniformVariables::new();
+                        use c_str_macro::c_str;
+                        use Uniform::*;
+                        uniforms.add(c_str!("uModel"), Matrix4(&model_matrix));
+                        uniforms.add(c_str!("uView"), Matrix4(&view_matrix));
+                        uniforms.add(c_str!("uProjection"), Matrix4(&projection_matrix));
+                        uniforms.add(
+                            c_str!("uViewPosition"),
+                            TripleFloat(camera.pos().x, camera.pos().y, camera.pos().z),
+                        );
+                        uniforms
+                    };
+
+                    // 描画
+                    stage_vao.draw_triangles(&uniforms);
+                    player_vao.draw_triangles(&uniforms);
                 }
-                client_state = ClientState::TitleScreen; // TODO: request-after-gameイベントをemit
+
+                gui_vao = gui_vao_buffer.build(&gl, &gui_vao_config);
+                render_gui_vao(&gui_vao, width, height);
+
+                let key_state = KeyboardState::new(&engine.event_pump);
+                if key_state.is_scancode_pressed(Scancode::Space) {
+                    client_state = ClientState::TitleScreen; // TODO: request-after-gameイベントをemit
+                }
             }
 
             ClientState::Quit => {
@@ -390,6 +525,18 @@ fn main() {
 /// `players`の要素数は2程度
 fn find_own_player(players: &Vec<Player>, uid: Uuid) -> Option<&Player> {
     players.iter().find(|player| player.uid == uid)
+}
+
+fn render_gui_vao(gui_vao: &Vao, width: u32, height: u32) {
+    let uniforms = {
+        let mut uniforms = UniformVariables::new();
+        use c_str_macro::c_str;
+        use Uniform::*;
+        uniforms.add(c_str!("uWidth"), Float(width as f32));
+        uniforms.add(c_str!("uHeight"), Float(height as f32));
+        uniforms
+    };
+    gui_vao.draw_triangles(&uniforms);
 }
 
 #[derive(PartialEq, Debug)]
