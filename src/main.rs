@@ -3,6 +3,7 @@ use std::path::Path;
 use std::sync::Arc;
 use std::sync::Mutex;
 
+use re::vao::VaoBuffer;
 use sdl2::keyboard::KeyboardState;
 use sdl2::keyboard::Scancode;
 
@@ -73,6 +74,11 @@ fn main() {
     let shader = Program::from_shaders(gl.clone(), &[vert_shader, frag_shader]).unwrap_or_log();
     info!("shader program");
 
+    let vert_shader = Shader::from_vert_file(gl.clone(), "rsc/shader/gui.vs").unwrap_or_log();
+    let frag_shader = Shader::from_frag_file(gl.clone(), "rsc/shader/gui.fs").unwrap_or_log();
+    let shader_gui = Program::from_shaders(gl.clone(), &[vert_shader, frag_shader]).unwrap_or_log();
+    info!("gui shader program");
+
     let main_texture = engine
         .image_manager
         .load_image(Path::new("rsc/textures/atlas/main.png"), "atlas/main", true)
@@ -85,6 +91,10 @@ fn main() {
         main_texture.height, TEX_ATLAS_H,
         "テクスチャのサイズが想定と違います"
     );
+    let title_texture = engine
+        .image_manager
+        .load_image(Path::new("rsc/textures/title.png"), "title", false)
+        .unwrap_or_log();
     info!("load texture");
 
     let mut world = World::<FIELD_SIZE, FIELD_SIZE>::new();
@@ -101,6 +111,11 @@ fn main() {
         .build();
     let mut stage_vao = world.render_field().build(&gl, &vao_config);
     let mut player_vao = world.render_players().build(&gl, &vao_config);
+
+    let gui_vao_config = VaoConfigBuilder::new(&shader_gui).texture(&title_texture).build();
+    let mut gui_vao_buffer = VaoBuffer::new();
+    let mut gui_vao;
+
     info!("vao buffer");
 
     let mut own_player_pos: Point3 = Point3::new(0.0, 0.0, 0.0);
@@ -213,6 +228,31 @@ fn main() {
 
         match client_state {
             ClientState::TitleScreen => {
+                gui_vao_buffer.clear();
+                let (width, height) = (width as f32, height as f32);
+                #[rustfmt::skip]
+                let mut vert: Vec<f32> = vec![
+                      0.0,    0.0, 0.0,  0.0, 0.0, 1.0,  0.0, 0.0,
+                      0.0, height, 0.0,  0.0, 0.0, 1.0,  0.0, 1.0,
+                    width, height, 0.0,  0.0, 0.0, 1.0,  1.0, 1.0,
+
+                      0.0,    0.0, 0.0,  0.0, 0.0, 1.0,  0.0, 0.0,
+                    width, height, 0.0,  0.0, 0.0, 1.0,  1.0, 1.0,
+                    width,    0.0, 0.0,  0.0, 0.0, 1.0,  1.0, 0.0,
+                ];
+                gui_vao_buffer.append(&mut vert);
+                gui_vao = gui_vao_buffer.build(&gl, &gui_vao_config);
+
+                let uniforms = {
+                    let mut uniforms = UniformVariables::new();
+                    use c_str_macro::c_str;
+                    use Uniform::*;
+                    uniforms.add(c_str!("uWidth"), Float(width as f32));
+                    uniforms.add(c_str!("uHeight"), Float(height as f32));
+                    uniforms
+                };
+                gui_vao.draw_triangles(&uniforms);
+
                 let key_state = KeyboardState::new(&engine.event_pump);
                 if key_state.is_scancode_pressed(Scancode::Space) {
                     client_state = ClientState::SettingConnection
