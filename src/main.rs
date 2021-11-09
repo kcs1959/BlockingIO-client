@@ -3,6 +3,8 @@ use std::path::Path;
 use std::sync::Arc;
 use std::sync::Mutex;
 
+use re::gui::layout::Rect;
+use re::texture::dynamic_texture_atlas::DynamicTextureUV;
 use re::vao::VaoBuffer;
 use sdl2::keyboard::KeyboardState;
 use sdl2::keyboard::Scancode;
@@ -91,10 +93,17 @@ fn main() {
         main_texture.height, TEX_ATLAS_H,
         "テクスチャのサイズが想定と違います"
     );
+
     let title_texture = engine
         .image_manager
         .load_image(Path::new("rsc/textures/title.png"), "title", false)
         .unwrap_or_log();
+
+    let tex_title = DynamicTextureUV::new(
+        &Rect::new(0_i32, 0_i32, title_texture.width, title_texture.height),
+        title_texture.width,
+        title_texture.height,
+    );
     info!("load texture");
 
     let mut world = World::<FIELD_SIZE, FIELD_SIZE>::new();
@@ -229,18 +238,7 @@ fn main() {
         match client_state {
             ClientState::TitleScreen => {
                 gui_vao_buffer.clear();
-                let (width, height) = (width as f32, height as f32);
-                #[rustfmt::skip]
-                let mut vert: Vec<f32> = vec![
-                      0.0,    0.0, 0.0,  0.0, 0.0, 1.0,  0.0, 0.0,
-                      0.0, height, 0.0,  0.0, 0.0, 1.0,  0.0, 1.0,
-                    width, height, 0.0,  0.0, 0.0, 1.0,  1.0, 1.0,
-
-                      0.0,    0.0, 0.0,  0.0, 0.0, 1.0,  0.0, 0.0,
-                    width, height, 0.0,  0.0, 0.0, 1.0,  1.0, 1.0,
-                    width,    0.0, 0.0,  0.0, 0.0, 1.0,  1.0, 0.0,
-                ];
-                gui_vao_buffer.append(&mut vert);
+                gui_vao_buffer.add_rectangle(&tex_title, &Rect::<i32, u32>::new(0, 0, width, height));
                 gui_vao = gui_vao_buffer.build(&gl, &gui_vao_config);
 
                 let uniforms = {
