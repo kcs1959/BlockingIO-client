@@ -79,8 +79,4 @@ impl Engine {
     pub fn event_pump(&self) -> &EventPump {
         &self.event_pump
     }
-
-    pub fn image_manager(&self) -> &ImageManager {
-        &self.image_manager
-    }
 }
