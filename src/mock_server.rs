@@ -17,7 +17,7 @@ use crate::{
         DirectionJson, OnUpdateUserJson, RoomStateEventJson, RoomStateJson, SetupUidJson, SquareJson,
         UpdateFieldJson,
     },
-    player::Player,
+    player::{Player, Tagger},
     types::*,
     GameFinishReason, FIELD_SIZE,
 };
@@ -100,10 +100,19 @@ impl Api {
                                 players.push(player);
                             }
 
+                            let tagger = Tagger::new(Point2i::new(
+                                FIELD_SIZE as i32 - 1 - json.tagger.position.row,
+                                json.tagger.position.column,
+                            ));
+
                             debug_assert_eq!(json.battle_field.length, FIELD_SIZE as i32);
                             let field = make_height_matrix(json.battle_field.squares);
 
-                            ApiEvent::UpdateField { players, field }
+                            ApiEvent::UpdateField {
+                                players,
+                                tagger,
+                                field,
+                            }
                         }
                         crate::api::json::GameStatusJson::Finish => ApiEvent::GameFinished {
                             reason: GameFinishReason::Normal {
@@ -178,6 +187,7 @@ pub enum ApiEvent {
     RoomStateNotJoined,
     UpdateField {
         players: Vec<Player>,
+        tagger: Tagger,
         field: na::SMatrix<i32, FIELD_SIZE, FIELD_SIZE>,
     },
     GameFinished {

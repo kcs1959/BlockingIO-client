@@ -203,7 +203,7 @@ fn main() {
                         info!("ルームから切断されました。");
                         client_state = ClientState::TitleScreen;
                     }
-                    ApiEvent::UpdateField { players, field } => {
+                    ApiEvent::UpdateField { players, tagger, field } => {
                         if client_state == ClientState::Playing {
                             if let Some(own_player) = find_own_player(&players, user_id) {
                                 own_player_pos = world.player_world_pos(own_player);
