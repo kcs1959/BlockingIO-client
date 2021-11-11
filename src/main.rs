@@ -49,6 +49,7 @@ const TEX_BLOCK_TOP: TextureAtlasPos = TextureAtlasPos::new(0, 0);
 const TEX_PLAYER_TMP: TextureAtlasPos = TextureAtlasPos::new(0, 1);
 const TEX_BLOCK_DANGER: TextureAtlasPos = TextureAtlasPos::new(0, 2);
 const TEX_BLOCK_SAFE: TextureAtlasPos = TextureAtlasPos::new(0, 3);
+const TEX_TAGGER: TextureAtlasPos = TextureAtlasPos::new(1, 0);
 
 const FIELD_SIZE: usize = 32;
 
