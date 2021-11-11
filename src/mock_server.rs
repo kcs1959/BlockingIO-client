@@ -17,7 +17,7 @@ use crate::{
         DirectionJson, OnUpdateUserJson, RoomStateEventJson, RoomStateJson, SetupUidJson, SquareJson,
         UpdateFieldJson,
     },
-    player::Player,
+    player::{Player, Tagger},
     types::*,
     GameFinishReason, FIELD_SIZE,
 };
@@ -83,10 +83,11 @@ impl Api {
                     debug!("{} event", event::UPDATE_FIELD);
                     let json: UpdateFieldJson =
                         serde_json::from_slice(&payload.to_utf8_bytes()).unwrap_or_log();
-                    let event = match json.state {
+                    match json.state {
                         crate::api::json::GameStatusJson::BeforeStart
                         | crate::api::json::GameStatusJson::PendingStart => return,
-                        crate::api::json::GameStatusJson::InGame => {
+                        crate::api::json::GameStatusJson::InGame
+                        | crate::api::json::GameStatusJson::Finish => {
                             let mut players = Vec::new();
                             for player in &json.player_list {
                                 let player = Player::new(
@@ -100,22 +101,43 @@ impl Api {
                                 players.push(player);
                             }
 
+                            let tagger = Tagger::new(Point2i::new(
+                                FIELD_SIZE as i32 - 1 - json.tagger.position.row,
+                                json.tagger.position.column,
+                            ));
+
                             debug_assert_eq!(json.battle_field.length, FIELD_SIZE as i32);
                             let field = make_height_matrix(json.battle_field.squares);
 
-                            ApiEvent::UpdateField { players, field }
-                        }
-                        crate::api::json::GameStatusJson::Finish => ApiEvent::GameFinished {
-                            reason: GameFinishReason::Normal {
-                                winner: json.winner.map(|winner| winner.uid),
-                            },
-                        },
-                        crate::api::json::GameStatusJson::AbnormalEnd => ApiEvent::GameFinished {
-                            reason: GameFinishReason::Abnromal,
-                        },
-                    };
+                            let field_update_event = ApiEvent::UpdateField {
+                                players,
+                                tagger,
+                                field,
+                            };
+                            queue_update_field
+                                .lock()
+                                .unwrap_or_log()
+                                .push_back(field_update_event);
 
-                    queue_update_field.lock().unwrap_or_log().push_back(event);
+                            if let crate::api::json::GameStatusJson::Finish = json.state {
+                                let game_finished_event = ApiEvent::GameFinished {
+                                    reason: GameFinishReason::Normal {
+                                        winner: json.winner.map(|winner| winner.uid),
+                                    },
+                                };
+                                queue_update_field
+                                    .lock()
+                                    .unwrap_or_log()
+                                    .push_back(game_finished_event);
+                            }
+                        }
+                        crate::api::json::GameStatusJson::AbnormalEnd => queue_update_field
+                            .lock()
+                            .unwrap_or_log()
+                            .push_back(ApiEvent::GameFinished {
+                                reason: GameFinishReason::Abnromal,
+                            }),
+                    };
                 })
                 .connect()?,
         );
@@ -178,6 +200,7 @@ pub enum ApiEvent {
     RoomStateNotJoined,
     UpdateField {
         players: Vec<Player>,
+        tagger: Tagger,
         field: na::SMatrix<i32, FIELD_SIZE, FIELD_SIZE>,
     },
     GameFinished {

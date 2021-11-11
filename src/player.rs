@@ -13,3 +13,14 @@ impl Player {
         Self { pos, uid, name }
     }
 }
+
+#[derive(Debug)]
+pub struct Tagger {
+    pub pos: Point2i,
+}
+
+impl Tagger {
+    pub fn new(pos: Point2i) -> Self {
+        Self { pos }
+    }
+}

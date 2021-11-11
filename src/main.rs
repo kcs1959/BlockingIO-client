@@ -1,6 +1,5 @@
 use std::collections::VecDeque;
 use std::ffi::CString;
-use std::path::Path;
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -13,7 +12,6 @@ use re::shader::Program;
 use re::shader::Shader;
 use re::shader::Uniform;
 use re::shader::UniformVariables;
-use re::texture::texture_atlas::TextureAtlasPos;
 use re::vao::Vao;
 use re::vao::VaoConfigBuilder;
 
@@ -44,11 +42,6 @@ pub const TEX_W: u32 = 64;
 pub const TEX_H: u32 = 64;
 pub const TEX_ATLAS_W: u32 = TEX_W * 4;
 pub const TEX_ATLAS_H: u32 = TEX_H * 4;
-
-const TEX_BLOCK_TOP: TextureAtlasPos = TextureAtlasPos::new(0, 0);
-const TEX_PLAYER_TMP: TextureAtlasPos = TextureAtlasPos::new(0, 1);
-const TEX_BLOCK_DANGER: TextureAtlasPos = TextureAtlasPos::new(0, 2);
-const TEX_BLOCK_SAFE: TextureAtlasPos = TextureAtlasPos::new(0, 3);
 
 const FIELD_SIZE: usize = 32;
 
@@ -103,7 +96,11 @@ fn main() {
 
     let main_texture = engine
         .image_manager
-        .load_image(Path::new("rsc/textures/atlas/main.png"), "atlas/main", true)
+        .load_from_memory(
+            include_bytes!("../rsc_included/textures/atlas/main.png"),
+            "atlas/main",
+            true,
+        )
         .expect_or_log("テクスチャの読み込みに失敗");
     debug_assert_eq!(main_texture.width, TEX_ATLAS_W,);
     debug_assert_eq!(main_texture.height, TEX_ATLAS_H,);
@@ -111,7 +108,7 @@ fn main() {
 
     let gui_texture = engine
         .image_manager
-        .load_image(Path::new("rsc/textures/title.png"), "gui", false)
+        .load_from_memory(include_bytes!("../rsc_included/textures/title.png"), "gui", false)
         .unwrap_or_log();
     info!("load texture 2/2");
 
@@ -166,7 +163,7 @@ fn main() {
         // Socket.ioのイベントを処理
         socketio_thread.block_on(async {
             let mut lock = unhandled_events.lock().unwrap_or_log();
-            while let Some(event) = lock.pop_front() {
+            if let Some(event) = lock.pop_front() {
                 match event {
                     ApiEvent::UpdateUser { uid, name } => {
                         if client_state == ClientState::WaitingSettingUid {
@@ -202,7 +199,7 @@ fn main() {
                         info!("ルームから切断されました。");
                         client_state = ClientState::TitleScreen;
                     }
-                    ApiEvent::UpdateField { players, field } => {
+                    ApiEvent::UpdateField { players, tagger, field } => {
                         if client_state == ClientState::Playing {
                             if let Some(own_player) = find_own_player(&players, user_id) {
                                 own_player_pos = world.player_world_pos(own_player);
@@ -211,6 +208,7 @@ fn main() {
                             }
                             world.update(field);
                             world.set_players(players);
+                            world.set_tagger(tagger);
                             world_updated = true;
                         } else {
                             warn!(
