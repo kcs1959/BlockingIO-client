@@ -70,11 +70,14 @@ fn main() {
     let socketio_thread = tokio::runtime::Runtime::new().unwrap_or_log();
 
     let mut engine = Engine::init();
+    info!("done Engine init");
+
     let gl = engine.gl().clone();
+
     let vert_shader = Shader::from_vert_file(gl.clone(), "rsc/shader/shader.vs").unwrap_or_log();
     let frag_shader = Shader::from_frag_file(gl.clone(), "rsc/shader/shader.fs").unwrap_or_log();
     let shader = Program::from_shaders(gl.clone(), &[vert_shader, frag_shader]).unwrap_or_log();
-    info!("shader program");
+    info!("world shader program");
 
     let vert_shader = Shader::from_vert_file(gl.clone(), "rsc/shader/gui.vs").unwrap_or_log();
     let frag_shader = Shader::from_frag_file(gl.clone(), "rsc/shader/gui.fs").unwrap_or_log();
@@ -85,21 +88,15 @@ fn main() {
         .image_manager
         .load_image(Path::new("rsc/textures/atlas/main.png"), "atlas/main", true)
         .expect_or_log("テクスチャの読み込みに失敗");
-    debug_assert_eq!(
-        main_texture.width, TEX_ATLAS_W,
-        "テクスチャのサイズが想定と違います"
-    );
-    debug_assert_eq!(
-        main_texture.height, TEX_ATLAS_H,
-        "テクスチャのサイズが想定と違います"
-    );
+    debug_assert_eq!(main_texture.width, TEX_ATLAS_W,);
+    debug_assert_eq!(main_texture.height, TEX_ATLAS_H,);
+    info!("load texture 1/2");
 
     let gui_texture = engine
         .image_manager
         .load_image(Path::new("rsc/textures/title.png"), "gui", false)
         .unwrap_or_log();
-
-    info!("load texture");
+    info!("load texture 2/2");
 
     let mut world = World::<FIELD_SIZE, FIELD_SIZE>::new();
     info!("world");
@@ -115,12 +112,12 @@ fn main() {
         .build();
     let mut field_vao = world.render_field().build(&gl, &vao_config);
     let mut player_vao = world.render_players().build(&gl, &vao_config);
+    info!("world VAO buffers");
 
     let gui_vao_config = VaoConfigBuilder::new(&shader_gui).texture(&gui_texture).build();
     let (width, height) = engine.window().drawable_size();
     let mut gui_renderer = GuiRenderer::new(width, height, &gui_texture);
-
-    info!("vao buffer");
+    info!("GUI Renderer");
 
     let mut own_player_pos: Point3 = Point3::new(0.0, 0.0, 0.0);
     let mut camera = Camera::new(own_player_pos);
