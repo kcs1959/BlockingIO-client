@@ -119,7 +119,7 @@ fn main() {
     let mut gui_renderer = GuiRenderer::new(width, height, &gui_texture);
     info!("GUI Renderer");
 
-    let mut own_player_pos: Point3 = Point3::new(0.0, 0.0, 0.0);
+    let mut own_player_pos: Point3 = Point3::new(16.0, 0.0, 16.0);
     let mut camera = Camera::new(own_player_pos);
 
     let mut user_id = setting.uuid;
