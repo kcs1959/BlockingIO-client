@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use std::ffi::CString;
 use std::path::Path;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -74,13 +75,29 @@ fn main() {
 
     let gl = engine.gl().clone();
 
-    let vert_shader = Shader::from_vert_file(gl.clone(), "rsc/shader/shader.vs").unwrap_or_log();
-    let frag_shader = Shader::from_frag_file(gl.clone(), "rsc/shader/shader.fs").unwrap_or_log();
+    let vert_shader = Shader::from_vert_code(
+        gl.clone(),
+        &CString::new(include_str!("../rsc_included/shader/world.vert")).unwrap_or_log(),
+    )
+    .unwrap_or_log();
+    let frag_shader = Shader::from_frag_code(
+        gl.clone(),
+        &CString::new(include_str!("../rsc_included/shader/world.frag")).unwrap_or_log(),
+    )
+    .unwrap_or_log();
     let shader = Program::from_shaders(gl.clone(), &[vert_shader, frag_shader]).unwrap_or_log();
     info!("world shader program");
 
-    let vert_shader = Shader::from_vert_file(gl.clone(), "rsc/shader/gui.vs").unwrap_or_log();
-    let frag_shader = Shader::from_frag_file(gl.clone(), "rsc/shader/gui.fs").unwrap_or_log();
+    let vert_shader = Shader::from_vert_code(
+        gl.clone(),
+        &CString::new(include_str!("../rsc_included/shader/gui.vert")).unwrap_or_log(),
+    )
+    .unwrap_or_log();
+    let frag_shader = Shader::from_frag_code(
+        gl.clone(),
+        &CString::new(include_str!("../rsc_included/shader/gui.frag")).unwrap_or_log(),
+    )
+    .unwrap_or_log();
     let shader_gui = Program::from_shaders(gl.clone(), &[vert_shader, frag_shader]).unwrap_or_log();
     info!("gui shader program");
 
