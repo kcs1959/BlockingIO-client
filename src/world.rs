@@ -1,6 +1,7 @@
 use crate::{
-    player::Player, types::*, FIELD_SIZE, TEX_BLOCK_DANGER, TEX_BLOCK_SAFE, TEX_BLOCK_TOP,
-    TEX_PLAYER_TMP,
+    player::{Player, Tagger},
+    types::*,
+    FIELD_SIZE, TEX_BLOCK_DANGER, TEX_BLOCK_SAFE, TEX_BLOCK_TOP, TEX_PLAYER_TMP, TEX_TAGGER,
 };
 use re::vao::VaoBuffer;
 
@@ -27,7 +28,7 @@ impl World<FIELD_SIZE, FIELD_SIZE> {
     }
 
     pub fn player_world_pos(&self, player: &Player) -> Point3 {
-        PlayerRenderer::player_world_pos(player, &self.field)
+        PlayerRenderer::calc_world_pos(&player.pos, &self.field)
     }
 
     pub fn update(&mut self, height_map: FieldMatrix) {
@@ -37,6 +38,10 @@ impl World<FIELD_SIZE, FIELD_SIZE> {
 
     pub fn set_players(&mut self, players: Vec<Player>) {
         self.player_renderer.set_players(players);
+    }
+
+    pub fn set_tagger(&mut self, tagger: Tagger) {
+        self.player_renderer.set_tagger(tagger);
     }
 
     pub fn render_field(&mut self) -> &VaoBuffer {
@@ -106,6 +111,7 @@ impl FieldRenderer<FIELD_SIZE, FIELD_SIZE> {
 struct PlayerRenderer {
     vao_buffer: VaoBuffer,
     players: Vec<Player>,
+    tagger: Option<Tagger>,
 }
 
 impl PlayerRenderer {
@@ -113,14 +119,15 @@ impl PlayerRenderer {
         Self {
             vao_buffer: VaoBuffer::with_num_vertex(24 * 2), // 1プレイヤーの頂点数は24、1つのゲームには最大2プレイヤー
             players: Vec::new(),
+            tagger: None,
         }
     }
 
-    pub fn player_world_pos(player: &Player, field: &FieldMatrix) -> Point3 {
+    pub fn calc_world_pos(pos: &Point2i, field: &FieldMatrix) -> Point3 {
         Point3::new(
-            player.pos.x as f32 + 0.5,
-            field[(player.pos.x as usize, player.pos.y as usize)] as f32 + 1.5,
-            player.pos.y as f32 + 0.5,
+            pos.x as f32 + 0.5,
+            field[(pos.x as usize, pos.y as usize)] as f32 + 1.5,
+            pos.y as f32 + 0.5,
         )
     }
 
@@ -128,11 +135,19 @@ impl PlayerRenderer {
         self.players = players;
     }
 
+    pub fn set_tagger(&mut self, tagger: Tagger) {
+        self.tagger = Some(tagger);
+    }
+
     pub fn render(&mut self, field: &FieldMatrix) {
         self.vao_buffer.clear();
         for player in &self.players {
-            let player_pos = Self::player_world_pos(player, field);
+            let player_pos = Self::calc_world_pos(&player.pos, field);
             self.vao_buffer.add_player(&player_pos, &player.name);
+        }
+        if let Some(ref tagger) = self.tagger {
+            let tagger_pos = Self::calc_world_pos(&tagger.pos, field);
+            self.vao_buffer.add_tagger(&tagger_pos);
         }
     }
 }
@@ -279,10 +294,15 @@ impl VaoBuilderForField for VaoBuffer {
 /// ReverieEngineのVaoBufferに、プレイヤー描画の機能を追加するためのトレイト
 trait VaoBuilderForPlayer {
     fn add_player(&mut self, player_pos: &Point3, player_name: &str);
+    fn add_tagger(&mut self, tagger_pos: &Point3);
 }
 
 impl VaoBuilderForPlayer for VaoBuffer {
     fn add_player(&mut self, player_pos: &Point3, _player_name: &str) {
         self.add_octahedron(&player_pos, 0.5, &TextureUV::of_atlas(&TEX_PLAYER_TMP))
+    }
+
+    fn add_tagger(&mut self, tagger_pos: &Point3) {
+        self.add_octahedron(&tagger_pos, 0.5, &TextureUV::of_atlas(&TEX_TAGGER))
     }
 }

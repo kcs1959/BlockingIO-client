@@ -212,6 +212,7 @@ fn main() {
                             }
                             world.update(field);
                             world.set_players(players);
+                            world.set_tagger(tagger);
                             world_updated = true;
                         } else {
                             warn!(
