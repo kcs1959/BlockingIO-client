@@ -113,7 +113,7 @@ fn main() {
         .diffuse(Vector3::new(0.5, 0.5, 0.5))
         .specular(Vector3::new(0.2, 0.2, 0.2))
         .build();
-    let mut stage_vao = world.render_field().build(&gl, &vao_config);
+    let mut field_vao = world.render_field().build(&gl, &vao_config);
     let mut player_vao = world.render_players().build(&gl, &vao_config);
 
     let gui_vao_config = VaoConfigBuilder::new(&shader_gui).texture(&gui_texture).build();
@@ -329,10 +329,10 @@ fn main() {
                 camera.update_position(frames);
 
                 if world_updated {
-                    stage_vao = world.render_field().build(&gl, &vao_config);
+                    field_vao = world.render_field().build(&gl, &vao_config);
                     player_vao = world.render_players().build(&gl, &vao_config);
                 }
-                render_field_and_player_vao(&stage_vao, &player_vao, &camera, 0.5, width, height);
+                render_field_and_player_vao(&field_vao, &player_vao, &camera, 0.5, width, height);
             }
 
             ClientState::GameFinished { ref reason } => {
@@ -356,7 +356,7 @@ fn main() {
                 };
                 gui_renderer.draw_スペースキーでスタート();
 
-                render_field_and_player_vao(&stage_vao, &player_vao, &camera, 0.5, width, height);
+                render_field_and_player_vao(&field_vao, &player_vao, &camera, 0.5, width, height);
                 gui_renderer.render(&gl, &gui_vao_config);
 
                 let key_state = KeyboardState::new(&engine.event_pump);
