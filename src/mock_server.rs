@@ -83,10 +83,11 @@ impl Api {
                     debug!("{} event", event::UPDATE_FIELD);
                     let json: UpdateFieldJson =
                         serde_json::from_slice(&payload.to_utf8_bytes()).unwrap_or_log();
-                    let event = match json.state {
+                    let events = match json.state {
                         crate::api::json::GameStatusJson::BeforeStart
                         | crate::api::json::GameStatusJson::PendingStart => return,
-                        crate::api::json::GameStatusJson::InGame => {
+                        crate::api::json::GameStatusJson::InGame
+                        | crate::api::json::GameStatusJson::Finish => {
                             let mut players = Vec::new();
                             for player in &json.player_list {
                                 let player = Player::new(
@@ -108,23 +109,33 @@ impl Api {
                             debug_assert_eq!(json.battle_field.length, FIELD_SIZE as i32);
                             let field = make_height_matrix(json.battle_field.squares);
 
-                            ApiEvent::UpdateField {
+                            debug!("players: {:?}, tagger.pos: {:?}", players, tagger.pos);
+
+                            let field_update_event = ApiEvent::UpdateField {
                                 players,
                                 tagger,
                                 field,
+                            };
+
+                            if let crate::api::json::GameStatusJson::Finish = json.state {
+                                let game_finished_event = ApiEvent::GameFinished {
+                                    reason: GameFinishReason::Normal {
+                                        winner: json.winner.map(|winner| winner.uid),
+                                    },
+                                };
+                                vec![field_update_event, game_finished_event]
+                            } else {
+                                vec![field_update_event]
                             }
                         }
-                        crate::api::json::GameStatusJson::Finish => ApiEvent::GameFinished {
-                            reason: GameFinishReason::Normal {
-                                winner: json.winner.map(|winner| winner.uid),
-                            },
-                        },
-                        crate::api::json::GameStatusJson::AbnormalEnd => ApiEvent::GameFinished {
+                        crate::api::json::GameStatusJson::AbnormalEnd => vec![ApiEvent::GameFinished {
                             reason: GameFinishReason::Abnromal,
-                        },
+                        }],
                     };
 
-                    queue_update_field.lock().unwrap_or_log().push_back(event);
+                    for event in events {
+                        queue_update_field.lock().unwrap_or_log().push_back(event);
+                    }
                 })
                 .connect()?,
         );
