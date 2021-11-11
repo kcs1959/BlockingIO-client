@@ -167,7 +167,7 @@ fn main() {
         // Socket.ioのイベントを処理
         socketio_thread.block_on(async {
             let mut lock = unhandled_events.lock().unwrap_or_log();
-            while let Some(event) = lock.pop_front() {
+            if let Some(event) = lock.pop_front() {
                 match event {
                     ApiEvent::UpdateUser { uid, name } => {
                         if client_state == ClientState::WaitingSettingUid {
