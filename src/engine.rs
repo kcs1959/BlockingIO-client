@@ -1,4 +1,3 @@
-use imgui_sdl2::ImguiSdl2;
 use sdl2::video::{GLContext, Window};
 use sdl2::{EventPump, Sdl, TimerSubsystem, VideoSubsystem};
 
@@ -14,9 +13,6 @@ pub struct Engine {
     window: Window,
     _gl_context: GLContext, /* GLContextを誰かが所有していないとOpenGLを使えない */
     gl: Gl,
-    pub imgui: imgui::Context,
-    pub imgui_sdl2: ImguiSdl2,
-    _imgui_renderer: imgui_opengl_renderer::Renderer,
     pub event_pump: EventPump,
     pub image_manager: ImageManager,
 }
@@ -54,18 +50,6 @@ impl Engine {
         let gl = Gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as _);
         info!("init GL context");
 
-        let mut imgui = imgui::Context::create();
-        imgui.set_ini_filename(None);
-        let imgui_sdl2 = imgui_sdl2::ImguiSdl2::new(&mut imgui, &window);
-        let imgui_renderer = imgui_opengl_renderer::Renderer::new(&mut imgui, |s| {
-            video_subsystem.gl_get_proc_address(s) as _
-        });
-        info!(
-            "init ImGui (Platform: {}, Renderer: {})",
-            imgui.platform_name().unwrap_or(imgui::im_str!("Unknown")),
-            imgui.renderer_name().unwrap_or(imgui::im_str!("Unknown"))
-        );
-
         let event_pump = sdl.event_pump().unwrap_or_log();
         info!("init event pump");
 
@@ -79,9 +63,6 @@ impl Engine {
             window,
             _gl_context,
             gl,
-            imgui,
-            imgui_sdl2,
-            _imgui_renderer: imgui_renderer,
             event_pump,
             image_manager,
         }
@@ -95,19 +76,7 @@ impl Engine {
         &self.gl
     }
 
-    pub fn imgui(&self) -> &imgui::Context {
-        &self.imgui
-    }
-
-    pub fn imgui_sdl2(&self) -> &ImguiSdl2 {
-        &self.imgui_sdl2
-    }
-
     pub fn event_pump(&self) -> &EventPump {
         &self.event_pump
-    }
-
-    pub fn image_manager(&self) -> &ImageManager {
-        &self.image_manager
     }
 }

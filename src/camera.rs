@@ -13,9 +13,9 @@ impl Camera {
     pub fn new(player_pos: Point3) -> Self {
         Self {
             pos: player_pos,
-            interpolation_x: Interpolation::<f32>::new_lerp(0.0, 0.0, 0, 1),
-            interpolation_y: Interpolation::<f32>::new_lerp(0.0, 0.0, 0, 1),
-            interpolation_z: Interpolation::<f32>::new_lerp(0.0, 0.0, 0, 1),
+            interpolation_x: Interpolation::<f32>::new_constant(player_pos.x),
+            interpolation_y: Interpolation::<f32>::new_constant(player_pos.y),
+            interpolation_z: Interpolation::<f32>::new_constant(player_pos.z),
         }
     }
 
