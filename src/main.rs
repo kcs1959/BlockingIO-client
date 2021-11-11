@@ -155,11 +155,6 @@ fn main() {
 
         // OSのイベントを処理
         for event in engine.event_pump.poll_iter() {
-            engine.imgui_sdl2.handle_event(&mut engine.imgui, &event);
-            if engine.imgui_sdl2.ignore_event(&event) {
-                continue;
-            }
-
             use sdl2::event::Event;
             match event {
                 Event::Quit { .. } => client_state = ClientState::Quit,
