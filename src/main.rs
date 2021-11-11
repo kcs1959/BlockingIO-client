@@ -1,6 +1,5 @@
 use std::collections::VecDeque;
 use std::ffi::CString;
-use std::path::Path;
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -97,7 +96,11 @@ fn main() {
 
     let main_texture = engine
         .image_manager
-        .load_from_file(Path::new("rsc/textures/atlas/main.png"), "atlas/main", true)
+        .load_from_memory(
+            include_bytes!("../rsc_included/textures/atlas/main.png"),
+            "atlas/main",
+            true,
+        )
         .expect_or_log("テクスチャの読み込みに失敗");
     debug_assert_eq!(main_texture.width, TEX_ATLAS_W,);
     debug_assert_eq!(main_texture.height, TEX_ATLAS_H,);
@@ -105,7 +108,7 @@ fn main() {
 
     let gui_texture = engine
         .image_manager
-        .load_from_file(Path::new("rsc/textures/title.png"), "gui", false)
+        .load_from_memory(include_bytes!("../rsc_included/textures/title.png"), "gui", false)
         .unwrap_or_log();
     info!("load texture 2/2");
 
