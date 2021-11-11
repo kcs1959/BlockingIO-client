@@ -13,6 +13,7 @@ use re::shader::Shader;
 use re::shader::Uniform;
 use re::shader::UniformVariables;
 use re::texture::texture_atlas::TextureAtlasPos;
+use re::vao::Vao;
 use re::vao::VaoConfigBuilder;
 
 mod api;
@@ -327,37 +328,11 @@ fn main() {
                 }
                 camera.update_position(frames);
 
-                // 描画用の変数を準備
                 if world_updated {
                     stage_vao = world.render_field().build(&gl, &vao_config);
                     player_vao = world.render_players().build(&gl, &vao_config);
                 }
-                const SCALE: f32 = 0.5;
-                let model_matrix: Matrix4 = Matrix4::identity().scale(SCALE);
-                let view_matrix: Matrix4 = camera.view_matrix(SCALE);
-                let projection_matrix: Matrix4 = Matrix4::new_perspective(
-                    width as f32 / height as f32,
-                    std::f32::consts::PI / 4.0f32,
-                    0.1,
-                    100.0,
-                );
-                let uniforms = {
-                    let mut uniforms = UniformVariables::new();
-                    use c_str_macro::c_str;
-                    use Uniform::*;
-                    uniforms.add(c_str!("uModel"), Matrix4(&model_matrix));
-                    uniforms.add(c_str!("uView"), Matrix4(&view_matrix));
-                    uniforms.add(c_str!("uProjection"), Matrix4(&projection_matrix));
-                    uniforms.add(
-                        c_str!("uViewPosition"),
-                        TripleFloat(camera.pos().x, camera.pos().y, camera.pos().z),
-                    );
-                    uniforms
-                };
-
-                // 描画
-                stage_vao.draw_triangles(&uniforms);
-                player_vao.draw_triangles(&uniforms);
+                render_field_and_player_vao(&stage_vao, &player_vao, &camera, 0.5, width, height);
             }
 
             ClientState::GameFinished { ref reason } => {
@@ -381,36 +356,7 @@ fn main() {
                 };
                 gui_renderer.draw_スペースキーでスタート();
 
-                // TODO: コピペ
-                {
-                    const SCALE: f32 = 0.5;
-                    let model_matrix: Matrix4 = Matrix4::identity().scale(SCALE);
-                    let view_matrix: Matrix4 = camera.view_matrix(SCALE);
-                    let projection_matrix: Matrix4 = Matrix4::new_perspective(
-                        width as f32 / height as f32,
-                        std::f32::consts::PI / 4.0f32,
-                        0.1,
-                        100.0,
-                    );
-                    let uniforms = {
-                        let mut uniforms = UniformVariables::new();
-                        use c_str_macro::c_str;
-                        use Uniform::*;
-                        uniforms.add(c_str!("uModel"), Matrix4(&model_matrix));
-                        uniforms.add(c_str!("uView"), Matrix4(&view_matrix));
-                        uniforms.add(c_str!("uProjection"), Matrix4(&projection_matrix));
-                        uniforms.add(
-                            c_str!("uViewPosition"),
-                            TripleFloat(camera.pos().x, camera.pos().y, camera.pos().z),
-                        );
-                        uniforms
-                    };
-
-                    // 描画
-                    stage_vao.draw_triangles(&uniforms);
-                    player_vao.draw_triangles(&uniforms);
-                }
-
+                render_field_and_player_vao(&stage_vao, &player_vao, &camera, 0.5, width, height);
                 gui_renderer.render(&gl, &gui_vao_config);
 
                 let key_state = KeyboardState::new(&engine.event_pump);
@@ -434,6 +380,40 @@ fn main() {
 /// `players`の要素数は2程度
 fn find_own_player(players: &Vec<Player>, uid: Uuid) -> Option<&Player> {
     players.iter().find(|player| player.uid == uid)
+}
+
+fn render_field_and_player_vao(
+    field_vao: &Vao,
+    player_vao: &Vao,
+    camera: &Camera,
+    scale: f32,
+    window_width: u32,
+    window_height: u32,
+) {
+    let model_matrix: Matrix4 = Matrix4::identity().scale(scale);
+    let view_matrix: Matrix4 = camera.view_matrix(scale);
+    let projection_matrix: Matrix4 = Matrix4::new_perspective(
+        window_width as f32 / window_height as f32,
+        std::f32::consts::PI / 4.0f32,
+        0.1,
+        100.0,
+    );
+    let uniforms = {
+        let mut uniforms = UniformVariables::new();
+        use c_str_macro::c_str;
+        use Uniform::*;
+        uniforms.add(c_str!("uModel"), Matrix4(&model_matrix));
+        uniforms.add(c_str!("uView"), Matrix4(&view_matrix));
+        uniforms.add(c_str!("uProjection"), Matrix4(&projection_matrix));
+        uniforms.add(
+            c_str!("uViewPosition"),
+            TripleFloat(camera.pos().x, camera.pos().y, camera.pos().z),
+        );
+        uniforms
+    };
+
+    field_vao.draw_triangles(&uniforms);
+    player_vao.draw_triangles(&uniforms);
 }
 
 #[derive(PartialEq, Debug)]
