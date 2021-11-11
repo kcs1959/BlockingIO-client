@@ -83,7 +83,7 @@ impl Api {
                     debug!("{} event", event::UPDATE_FIELD);
                     let json: UpdateFieldJson =
                         serde_json::from_slice(&payload.to_utf8_bytes()).unwrap_or_log();
-                    let events = match json.state {
+                    match json.state {
                         crate::api::json::GameStatusJson::BeforeStart
                         | crate::api::json::GameStatusJson::PendingStart => return,
                         crate::api::json::GameStatusJson::InGame
@@ -109,13 +109,15 @@ impl Api {
                             debug_assert_eq!(json.battle_field.length, FIELD_SIZE as i32);
                             let field = make_height_matrix(json.battle_field.squares);
 
-                            debug!("players: {:?}, tagger.pos: {:?}", players, tagger.pos);
-
                             let field_update_event = ApiEvent::UpdateField {
                                 players,
                                 tagger,
                                 field,
                             };
+                            queue_update_field
+                                .lock()
+                                .unwrap_or_log()
+                                .push_back(field_update_event);
 
                             if let crate::api::json::GameStatusJson::Finish = json.state {
                                 let game_finished_event = ApiEvent::GameFinished {
@@ -123,19 +125,19 @@ impl Api {
                                         winner: json.winner.map(|winner| winner.uid),
                                     },
                                 };
-                                vec![field_update_event, game_finished_event]
-                            } else {
-                                vec![field_update_event]
+                                queue_update_field
+                                    .lock()
+                                    .unwrap_or_log()
+                                    .push_back(game_finished_event);
                             }
                         }
-                        crate::api::json::GameStatusJson::AbnormalEnd => vec![ApiEvent::GameFinished {
-                            reason: GameFinishReason::Abnromal,
-                        }],
+                        crate::api::json::GameStatusJson::AbnormalEnd => queue_update_field
+                            .lock()
+                            .unwrap_or_log()
+                            .push_back(ApiEvent::GameFinished {
+                                reason: GameFinishReason::Abnromal,
+                            }),
                     };
-
-                    for event in events {
-                        queue_update_field.lock().unwrap_or_log().push_back(event);
-                    }
                 })
                 .connect()?,
         );
