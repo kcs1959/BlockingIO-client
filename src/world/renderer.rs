@@ -2,10 +2,21 @@ use super::vao_builder::{VaoBuilderForField, VaoBuilderForPlayer};
 use crate::player::{Player, Tagger};
 use crate::types::*;
 use crate::FIELD_SIZE;
+use re::texture::texture_atlas::TextureAtlasPos;
 use re::vao::VaoBuffer;
+
+pub const TEX_BLOCK_TOP: TextureAtlasPos = TextureAtlasPos::new(0, 0);
+pub const TEX_BLOCK_DANGER: TextureAtlasPos = TextureAtlasPos::new(0, 2);
+pub const TEX_BLOCK_SAFE: TextureAtlasPos = TextureAtlasPos::new(0, 3);
+
+pub const TEX_PLAYER_TMP: TextureAtlasPos = TextureAtlasPos::new(0, 1);
+pub const TEX_TAGGER: TextureAtlasPos = TextureAtlasPos::new(1, 0);
 
 pub struct FieldRenderer<const X: usize, const Z: usize> {
     pub vao_buffer: VaoBuffer,
+    tex_block_top: TextureUV,
+    tex_block_danger: TextureUV,
+    tex_block_safe: TextureUV,
     diff_up: na::SMatrix<i32, X, Z>,
     diff_down: na::SMatrix<i32, X, Z>,
     diff_left: na::SMatrix<i32, X, Z>,
@@ -14,10 +25,18 @@ pub struct FieldRenderer<const X: usize, const Z: usize> {
 
 impl FieldRenderer<FIELD_SIZE, FIELD_SIZE> {
     pub fn new() -> Self {
+        let tex_block_top = TextureUV::of_atlas(&TEX_BLOCK_TOP);
+        let tex_block_danger = TextureUV::of_atlas(&TEX_BLOCK_DANGER);
+        let tex_block_safe = TextureUV::of_atlas(&TEX_BLOCK_SAFE);
+
         let mut vao_buffer = VaoBuffer::with_num_vertex(36 * FIELD_SIZE * FIELD_SIZE); // 立方体は36頂点から成る
-        vao_buffer.add_floor(FIELD_SIZE, FIELD_SIZE);
+        vao_buffer.add_floor(FIELD_SIZE, FIELD_SIZE, &tex_block_top);
+
         Self {
             vao_buffer,
+            tex_block_top,
+            tex_block_danger,
+            tex_block_safe,
             diff_up: na::SMatrix::<i32, FIELD_SIZE, FIELD_SIZE>::zeros(),
             diff_down: na::SMatrix::<i32, FIELD_SIZE, FIELD_SIZE>::zeros(),
             diff_left: na::SMatrix::<i32, FIELD_SIZE, FIELD_SIZE>::zeros(),
@@ -51,6 +70,9 @@ impl FieldRenderer<FIELD_SIZE, FIELD_SIZE> {
                     self.diff_down[(x, z)],
                     self.diff_left[(x, z)],
                     self.diff_right[(x, z)],
+                    &self.tex_block_top,
+                    &self.tex_block_danger,
+                    &self.tex_block_safe,
                 );
             }
         }
@@ -59,6 +81,8 @@ impl FieldRenderer<FIELD_SIZE, FIELD_SIZE> {
 
 pub struct PlayerRenderer {
     pub vao_buffer: VaoBuffer,
+    tex_player: TextureUV,
+    tex_tagger: TextureUV,
     players: Vec<Player>,
     tagger: Option<Tagger>,
 }
@@ -67,6 +91,8 @@ impl PlayerRenderer {
     pub fn new() -> Self {
         Self {
             vao_buffer: VaoBuffer::with_num_vertex(24 * 2), // 1プレイヤーの頂点数は24、1つのゲームには最大2プレイヤー
+            tex_player: TextureUV::of_atlas(&TEX_PLAYER_TMP),
+            tex_tagger: TextureUV::of_atlas(&TEX_TAGGER),
             players: Vec::new(),
             tagger: None,
         }
@@ -92,11 +118,12 @@ impl PlayerRenderer {
         self.vao_buffer.clear();
         for player in &self.players {
             let player_pos = Self::calc_world_pos(&player.pos, field);
-            self.vao_buffer.add_player(&player_pos, &player.name);
+            self.vao_buffer
+                .add_player(&player_pos, &player.name, &self.tex_player);
         }
         if let Some(ref tagger) = self.tagger {
             let tagger_pos = Self::calc_world_pos(&tagger.pos, field);
-            self.vao_buffer.add_tagger(&tagger_pos);
+            self.vao_buffer.add_tagger(&tagger_pos, &self.tex_tagger);
         }
     }
 }

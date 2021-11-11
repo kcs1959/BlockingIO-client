@@ -13,7 +13,6 @@ use re::shader::Program;
 use re::shader::Shader;
 use re::shader::Uniform;
 use re::shader::UniformVariables;
-use re::texture::texture_atlas::TextureAtlasPos;
 use re::vao::Vao;
 use re::vao::VaoConfigBuilder;
 
@@ -44,12 +43,6 @@ pub const TEX_W: u32 = 64;
 pub const TEX_H: u32 = 64;
 pub const TEX_ATLAS_W: u32 = TEX_W * 4;
 pub const TEX_ATLAS_H: u32 = TEX_H * 4;
-
-const TEX_BLOCK_TOP: TextureAtlasPos = TextureAtlasPos::new(0, 0);
-const TEX_PLAYER_TMP: TextureAtlasPos = TextureAtlasPos::new(0, 1);
-const TEX_BLOCK_DANGER: TextureAtlasPos = TextureAtlasPos::new(0, 2);
-const TEX_BLOCK_SAFE: TextureAtlasPos = TextureAtlasPos::new(0, 3);
-const TEX_TAGGER: TextureAtlasPos = TextureAtlasPos::new(1, 0);
 
 const FIELD_SIZE: usize = 32;
 

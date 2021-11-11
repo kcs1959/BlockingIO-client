@@ -1,11 +1,10 @@
 use crate::types::*;
-use crate::{TEX_BLOCK_DANGER, TEX_BLOCK_SAFE, TEX_BLOCK_TOP, TEX_PLAYER_TMP, TEX_TAGGER};
 use re::vao::VaoBuffer;
 
 /// ReverieEngineのVaoBufferに、フィールド描画の機能を追加するためのトレイト
 pub trait VaoBuilderForField {
     /// ステージの床を追加する
-    fn add_floor(&mut self, width: usize, height: usize);
+    fn add_floor(&mut self, width: usize, height: usize, texture: &TextureUV);
 
     fn add_cell(
         &mut self,
@@ -16,6 +15,9 @@ pub trait VaoBuilderForField {
         diff_down: i32,
         diff_left: i32,
         diff_right: i32,
+        tex_top: &TextureUV,
+        tex_danger: &TextureUV,
+        tex_safe: &TextureUV,
     );
 }
 
@@ -37,14 +39,14 @@ fn add_block(
 }
 
 impl VaoBuilderForField for VaoBuffer {
-    fn add_floor(&mut self, width: usize, height: usize) {
+    fn add_floor(&mut self, width: usize, height: usize, texture: &TextureUV) {
         let textures = CuboidTextures {
-            top: &TextureUV::of_atlas(&TEX_BLOCK_TOP),
-            bottom: &TextureUV::of_atlas(&TEX_BLOCK_TOP),
-            south: &TextureUV::of_atlas(&TEX_BLOCK_TOP),
-            north: &TextureUV::of_atlas(&TEX_BLOCK_TOP),
-            west: &TextureUV::of_atlas(&TEX_BLOCK_TOP),
-            east: &TextureUV::of_atlas(&TEX_BLOCK_TOP),
+            top: texture,
+            bottom: texture,
+            south: texture,
+            north: texture,
+            west: texture,
+            east: texture,
         };
         for x in 0..width as i32 {
             for z in 0..height as i32 {
@@ -66,6 +68,9 @@ impl VaoBuilderForField for VaoBuffer {
         diff_down: i32,
         diff_left: i32,
         diff_right: i32,
+        tex_top: &TextureUV,
+        tex_danger: &TextureUV,
+        tex_safe: &TextureUV,
     ) {
         let p_lu = Point3::new((x + 1) as f32, (height + 1) as f32, z as f32); // 上面の左上の点
         let p_ld = Point3::new(x as f32, (height + 1) as f32, z as f32); // 左下
@@ -73,7 +78,7 @@ impl VaoBuilderForField for VaoBuffer {
         let p_ru = Point3::new((x + 1) as f32, (height + 1) as f32, (z + 1) as f32); // 右上
 
         // 上面(カメラから見て正面にある面)
-        self.add_face(&p_lu, &p_ld, &p_rd, &p_ru, &TextureUV::of_atlas(&TEX_BLOCK_TOP));
+        self.add_face(&p_lu, &p_ld, &p_rd, &p_ru, tex_top);
 
         // 上の面(カメラから見て上にある面)
         if diff_up > 0 {
@@ -83,11 +88,7 @@ impl VaoBuilderForField for VaoBuffer {
                 &(p_ru - diff_up_vec),
                 &(p_lu - diff_up_vec),
                 &p_lu,
-                &TextureUV::of_atlas(if diff_up == 1 {
-                    &TEX_BLOCK_SAFE
-                } else {
-                    &TEX_BLOCK_DANGER
-                }),
+                if diff_up == 1 { tex_safe } else { tex_danger },
             );
         }
 
@@ -99,11 +100,7 @@ impl VaoBuilderForField for VaoBuffer {
                 &(p_ld - diff_down_vec),
                 &(p_rd - diff_down_vec),
                 &p_rd,
-                &TextureUV::of_atlas(if diff_down == 1 {
-                    &TEX_BLOCK_SAFE
-                } else {
-                    &TEX_BLOCK_DANGER
-                }),
+                if diff_down == 1 { tex_safe } else { tex_danger },
             );
         }
 
@@ -115,11 +112,7 @@ impl VaoBuilderForField for VaoBuffer {
                 &(p_lu - diff_left_vec),
                 &(p_ld - diff_left_vec),
                 &p_ld,
-                &TextureUV::of_atlas(if diff_left == 1 {
-                    &TEX_BLOCK_SAFE
-                } else {
-                    &TEX_BLOCK_DANGER
-                }),
+                if diff_left == 1 { tex_safe } else { tex_danger },
             );
         }
 
@@ -131,11 +124,7 @@ impl VaoBuilderForField for VaoBuffer {
                 &(p_rd - diff_right_vec),
                 &(p_ru - diff_right_vec),
                 &p_ru,
-                &TextureUV::of_atlas(if diff_right == 1 {
-                    &TEX_BLOCK_SAFE
-                } else {
-                    &TEX_BLOCK_DANGER
-                }),
+                if diff_right == 1 { tex_safe } else { tex_danger },
             );
         }
     }
@@ -143,16 +132,16 @@ impl VaoBuilderForField for VaoBuffer {
 
 /// ReverieEngineのVaoBufferに、プレイヤー描画の機能を追加するためのトレイト
 pub trait VaoBuilderForPlayer {
-    fn add_player(&mut self, player_pos: &Point3, player_name: &str);
-    fn add_tagger(&mut self, tagger_pos: &Point3);
+    fn add_player(&mut self, player_pos: &Point3, player_name: &str, tex_player: &TextureUV);
+    fn add_tagger(&mut self, tagger_pos: &Point3, tex_tagger: &TextureUV);
 }
 
 impl VaoBuilderForPlayer for VaoBuffer {
-    fn add_player(&mut self, player_pos: &Point3, _player_name: &str) {
-        self.add_octahedron(&player_pos, 0.5, &TextureUV::of_atlas(&TEX_PLAYER_TMP))
+    fn add_player(&mut self, player_pos: &Point3, _player_name: &str, tex_player: &TextureUV) {
+        self.add_octahedron(&player_pos, 0.5, tex_player)
     }
 
-    fn add_tagger(&mut self, tagger_pos: &Point3) {
-        self.add_octahedron(&tagger_pos, 0.5, &TextureUV::of_atlas(&TEX_TAGGER))
+    fn add_tagger(&mut self, tagger_pos: &Point3, tex_tagger: &TextureUV) {
+        self.add_octahedron(&tagger_pos, 0.5, tex_tagger)
     }
 }
