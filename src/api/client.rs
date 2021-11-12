@@ -249,6 +249,8 @@ fn make_height_matrix(
     })
 }
 
+#[allow(dead_code)]
+#[cfg(debug_assertions)]
 fn print_payload(payload: &Payload) {
     match payload {
         Payload::String(str) => {
