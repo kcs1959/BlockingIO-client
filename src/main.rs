@@ -170,7 +170,7 @@ fn main() {
                         if client_state == ClientState::WaitingSettingUid {
                             user_id = uid;
                             user_name = name;
-                            client_state = ClientState::JoiningRoom { wait_frames: 0 };
+                            client_state = ClientState::JoiningRoom;
                         } else {
                             warn!(
                                 "unexpected event ApiEvent::UpdateUser uid:{}. state: {:?}",
@@ -276,27 +276,16 @@ fn main() {
                 gui_renderer.render(&gl, &gui_vao_config);
             }
 
-            ClientState::JoiningRoom { wait_frames: 0 } => {
+            ClientState::JoiningRoom => {
                 match api.join_room() {
                     Ok(_) => {
                         client_state = ClientState::WaitingInRoom;
                     }
                     Err(_) => {
-                        warn!("ルームに入れませんでした。約3秒後に再接続します。");
-                        client_state = ClientState::JoiningRoom { wait_frames: 60 * 3 };
+                        warn!("ルームに入れませんでした。タイトル画面に戻ります。");
+                        client_state = ClientState::TitleScreen;
                     }
                 };
-            }
-
-            ClientState::JoiningRoom { wait_frames } => {
-                tracing::trace!("join-room wait {}", wait_frames);
-                client_state = ClientState::JoiningRoom {
-                    wait_frames: wait_frames - 1,
-                };
-                gui_renderer.clear();
-                gui_renderer.change_window_size(width, height);
-                gui_renderer.draw_接続中();
-                gui_renderer.render(&gl, &gui_vao_config);
             }
 
             ClientState::WaitingInRoom => {
@@ -434,8 +423,8 @@ enum ClientState {
     SettingConnection,
     /// on-update-userイベントを待っている状態
     WaitingSettingUid,
-    /// `wait_frames`フレーム後にjoin-roomすべき状態
-    JoiningRoom { wait_frames: u32 },
+    /// join-roomすべき状態
+    JoiningRoom,
     /// ルームに入っていて、ゲーム開始を待っている状態
     WaitingInRoom,
     /// ゲーム中
