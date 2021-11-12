@@ -181,10 +181,15 @@ fn main() {
                     ApiEvent::RoomStateOpening { room_id, room_name } => {
                         info!("room opening id: {}, name: {}", room_id, room_name);
                     }
-                    ApiEvent::RoomStateFulfilled { room_id, room_name } => {
+                    ApiEvent::RoomStateFulfilled { room_id, room_name, should_start } => {
                         if client_state == ClientState::WaitingInRoom {
                             info!("room fulfilled id: {}, name: {}", room_id, room_name);
-                            client_state = ClientState::Playing;
+                            if should_start {
+                                info!("starting game");
+                                client_state = ClientState::Playing;
+                            } else {
+                                info!("not starting game");
+                            }
                         } else {
                             warn!(
                                 "unexpected event ApiEvent::RoomStateFulfilled room_id: {}, room_name: {}. state: {:?}",

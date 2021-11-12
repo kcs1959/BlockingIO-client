@@ -67,6 +67,10 @@ impl ApiClient {
                         RoomStateJson::Fulfilled => ApiEvent::RoomStateFulfilled {
                             room_id: json.roomId.unwrap_or_log(),
                             room_name: json.roomname.unwrap_or_log(),
+                            should_start: json
+                                .assignedUsers
+                                .iter()
+                                .all(|user| user.requestingToStartGame),
                         },
                         RoomStateJson::Empty => ApiEvent::RoomStateEmpty {
                             room_id: json.roomId.unwrap_or_log(),
@@ -210,6 +214,7 @@ pub enum ApiEvent {
     RoomStateFulfilled {
         room_id: String,
         room_name: String,
+        should_start: bool,
     },
     /// クライアントに送られてくることはないはず
     RoomStateEmpty {
