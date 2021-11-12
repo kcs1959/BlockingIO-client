@@ -117,6 +117,7 @@ dependencies = [
  "reverie-engine",
  "rust_socketio",
  "sdl2",
+ "sdl2-sys",
  "serde",
  "serde_json",
  "tokio",

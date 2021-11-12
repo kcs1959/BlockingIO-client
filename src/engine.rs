@@ -26,6 +26,33 @@ impl Engine {
         info!("init SDL2: {}", sdl2::version::version());
         let video_subsystem = sdl.video().unwrap_or_log();
         info!("init SDL2 Video Subsystem");
+        unsafe {
+            // macOS
+            info!("setting SDL GL Attributes");
+            if sdl2_sys::SDL_GL_SetAttribute(
+                sdl2_sys::SDL_GLattr::SDL_GL_CONTEXT_PROFILE_MASK,
+                sdl2_sys::SDL_GLprofile::SDL_GL_CONTEXT_PROFILE_CORE as i32,
+            ) != 0
+            {
+                tracing::error!("failed SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE)");
+            }
+            if sdl2_sys::SDL_GL_SetAttribute(
+                sdl2_sys::SDL_GLattr::SDL_GL_CONTEXT_FLAGS,
+                sdl2_sys::SDL_GLcontextFlag::SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG as i32,
+            ) != 0
+            {
+                tracing::error!("failed SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG)");
+            }
+            if sdl2_sys::SDL_GL_SetAttribute(sdl2_sys::SDL_GLattr::SDL_GL_CONTEXT_MAJOR_VERSION, 3) != 0
+            {
+                tracing::error!("failed SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3)");
+            }
+            if sdl2_sys::SDL_GL_SetAttribute(sdl2_sys::SDL_GLattr::SDL_GL_CONTEXT_MINOR_VERSION, 3) != 0
+            {
+                tracing::error!("failed SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3)");
+            }
+            info!("done SDL GL Attributes");
+        }
         let timer_subsystem = sdl.timer().unwrap_or_log();
         info!("init SDL2 Timer Subsystem");
 
