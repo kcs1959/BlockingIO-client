@@ -158,7 +158,7 @@ impl ApiClient {
     }
 
     #[tracing::instrument(skip(self))]
-    pub fn join_room(&mut self, _id: &str) -> Result<(), Box<dyn Error>> {
+    pub fn join_room(&mut self) -> Result<(), Box<dyn Error>> {
         info!("emitting");
         let socket = self.get_socket()?;
         socket.emit(event::JOIN_ROOM, serde_json::json!("{}"))?;

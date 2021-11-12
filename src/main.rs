@@ -277,7 +277,7 @@ fn main() {
             }
 
             ClientState::JoiningRoom { wait_frames: 0 } => {
-                match api.join_room("foo") {
+                match api.join_room() {
                     Ok(_) => {
                         client_state = ClientState::WaitingInRoom;
                     }
