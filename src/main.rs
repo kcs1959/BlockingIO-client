@@ -374,6 +374,7 @@ fn main() {
             }
 
             ClientState::Quit => {
+                api.disconnect();
                 setting.save().expect_or_log("設定ファイルの保存に失敗");
                 break 'main;
             }

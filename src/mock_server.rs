@@ -189,6 +189,15 @@ impl Api {
             .unwrap_or_log();
         debug!("done");
     }
+
+    #[tracing::instrument(skip(self))]
+    pub fn disconnect(&mut self) {
+        debug!("disconnecting");
+        if let Some(socket) = self.socket.as_mut() {
+            socket.disconnect().unwrap_or_log();
+        }
+        debug!("disconnected");
+    }
 }
 
 #[derive(Debug)]
