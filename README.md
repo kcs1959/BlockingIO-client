@@ -1,11 +1,24 @@
 # BlockingIO-client
 
+# 実行
+
+1. ビルドする
+
+2. `cargo run`
+
+※ WSL2 + VcXsrv を使う場合は、Native opengl をオフに、Disable access control をオンにする。
+
 # ビルド方法
 
 ## Windows
 ```
 > cargo build
 ```
+
+## macOS
+
+**macOSはOpenGLのバージョンが古いのでサポートできません。** 代わりにWebGLに対応したい。
+
 
 ## Linux
 
@@ -29,13 +42,14 @@
 > cargo build
 ```
 
-## macOS
+# 設定ファイル
 
-**macOSはOpenGLのバージョンが古いのでサポートできません。** 代わりにWebGLに対応したい。
+1度実行すると、exeと同じディレクトリに`blocking-io-settings.toml`というファイルが生成される。
 
-# 実行
-```
-> cargo run
-```
+* `uuid` - ユーザーID
+* `server` - サーバーのアドレス
+* `fullscreen` - フルスクリーン
 
-WSL2 + VcXsrv X Server を使う場合は、Native opengl をオフに、Disable access control をオンにする。
+# ログ
+
+環境変数`BLKIO_TRACE=1`を設定すると一番細かいログが出力されるようになる。

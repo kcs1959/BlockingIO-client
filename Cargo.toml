@@ -6,13 +6,19 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-reverie-engine = {path = "lib/reverie-engine"}
+reverie-engine = { version = "0.0.4", path = "lib/reverie-engine" }
 nalgebra = "0.29.0"
 nalgebra-glm = "0.15.0"
 c_str_macro = "1.0.3"
 sdl2 = "0.34.5"
-imgui = "0.7.0"
-imgui-sdl2 = "0.14.0"
-imgui-opengl-renderer = "0.11.0"
 image = "0.23.14"
-tungstenite = "0.15.0"
+rust_socketio = "0.2.4"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0.68"
+encoding = "0.2"
+tokio = { version = "1.13.0", features = ["rt"] }
+uuid = { version = "0.8", features = ["serde", "v4"] }
+toml = "0.5"
+tracing = "0.1"
+tracing-subscriber = "0.2"
+tracing-unwrap = "0.9"

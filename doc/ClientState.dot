@@ -1,0 +1,86 @@
+digraph ClientState {
+  graph [
+    charset = "UTF-8"
+  ];
+  label = "ClientState 遷移図 (2021年11月12日)"
+  labelloc = t
+  labeljust = c
+  rankdir = TB
+  layout = dot
+  
+  node [
+    fontname = "HackGen, Consolas, monospace"
+    shape = ellipse
+    style = filled
+    fillcolor = "#cfecff"
+  ];
+  edge [];
+
+  TitleScreen [
+    fontcolor = white
+    fillcolor = "#17a6ff" 
+  ];
+  SettingConnection;
+  WaitingSettingUid;
+  JoiningRoom;
+  WaitingInRoom;
+  Playing;
+  GameFinished [ label = "GameFinished{reason}" ];
+  Quit [ 
+    shape=doublecircle
+    fontcolor = white
+    fillcolor = "#17a6ff"  
+  ];
+  any [ label = "*" ];
+
+
+  TitleScreen -> SettingConnection [
+    label = "スペースキー"
+  ];
+
+  SettingConnection -> TitleScreen [
+    label = "接続失敗"
+  ];
+
+  SettingConnection -> WaitingSettingUid [
+    label = "connect & setup-uid"
+  ];
+
+  WaitingSettingUid -> JoiningRoom [
+    label = "ApiEvent::UpdateUser"
+  ];
+
+  JoiningRoom -> WaitingInRoom [
+    label = "join-room成功"
+  ];
+
+  JoiningRoom -> TitleScreen [
+    label = "join-room失敗"
+  ];
+
+  WaitingInRoom -> Playing [
+    label = "ApiEvent::RoomStateFulfilled\n{should_start=true}"
+  ];
+
+  Playing -> Playing [
+    label = "ApiEvent::UpdateField"
+  ];
+
+  Playing -> GameFinished [
+    label = "ApiEvent::GameFinished"
+  ];
+
+  GameFinished -> WaitingInRoom [
+    label = "スペースキー"
+  ];
+
+  GameFinished -> GameFinished [
+    label = "ApiEvent::RoomStateFulfilled{..}"
+  ];
+
+
+
+  any -> Quit [
+    label = "Alt + F4"
+  ];
+}

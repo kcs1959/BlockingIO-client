@@ -1,22 +1,26 @@
-use nalgebra as na;
-use reverie_engine::interpolation::Interpolation;
+use crate::types::*;
+use uuid::Uuid;
 
+#[derive(Debug)]
 pub struct Player {
-    pub pos: na::Point3<f32>,
-    pub pos_camera: na::Point3<f32>,
-    pub interpolation_x: Interpolation<f32>,
-    pub interpolation_y: Interpolation<f32>,
-    pub interpolation_z: Interpolation<f32>,
+    pub pos: Point2i,
+    pub uid: Uuid,
+    pub name: String,
 }
 
 impl Player {
-    pub fn new(pos: na::Point3<f32>) -> Self {
-        Self {
-            pos,
-            pos_camera: pos,
-            interpolation_x: Interpolation::<f32>::new_lerp(0.0, 0.0, 0.0, 1.0),
-            interpolation_y: Interpolation::<f32>::new_lerp(0.0, 0.0, 0.0, 1.0),
-            interpolation_z: Interpolation::<f32>::new_lerp(0.0, 0.0, 0.0, 1.0),
-        }
+    pub fn new(pos: Point2i, uid: Uuid, name: String) -> Self {
+        Self { pos, uid, name }
+    }
+}
+
+#[derive(Debug)]
+pub struct Tagger {
+    pub pos: Point2i,
+}
+
+impl Tagger {
+    pub fn new(pos: Point2i) -> Self {
+        Self { pos }
     }
 }
