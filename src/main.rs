@@ -19,19 +19,18 @@ mod api;
 mod camera;
 mod engine;
 mod gui_renderer;
-mod mock_server;
 mod player;
 mod setting_storage;
 mod socketio_encoding;
 mod types;
 mod world;
 
+use crate::api::client::ApiClient;
+use crate::api::client::ApiEvent;
 use crate::api::json::DirectionJson;
 use crate::camera::Camera;
 use crate::engine::Engine;
 use crate::gui_renderer::GuiRenderer;
-use crate::mock_server::Api;
-use crate::mock_server::ApiEvent;
 use crate::player::Player;
 use crate::setting_storage::Setting;
 use crate::types::*;
@@ -141,7 +140,7 @@ fn main() {
 
     let mut client_state = ClientState::TitleScreen;
 
-    let mut api = Api::new(&setting.server);
+    let mut api = ApiClient::new(&setting.server);
     let unhandled_events = Arc::new(Mutex::new(VecDeque::new()));
 
     // ゲーム開始から現在までのフレーム数。約60フレームで1秒

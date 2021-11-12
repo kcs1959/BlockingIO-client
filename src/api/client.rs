@@ -1,6 +1,3 @@
-//! モックAPI
-//! APIが完成したらhttpやwebsocketで通信するコードを書く
-
 use std::{
     collections::VecDeque,
     error::Error,
@@ -22,14 +19,14 @@ use crate::{
     GameFinishReason, FIELD_SIZE,
 };
 
-pub struct Api {
+pub struct ApiClient {
     socket: Option<Socket>,
     url: String,
 }
 
-impl Api {
-    pub fn new(url: &str) -> Api {
-        Api {
+impl ApiClient {
+    pub fn new(url: &str) -> ApiClient {
+        ApiClient {
             socket: None,
             url: url.to_string(),
         }
