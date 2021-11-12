@@ -22,6 +22,7 @@ mod gui_renderer;
 mod player;
 mod setting_storage;
 mod socketio_encoding;
+mod tracing_ex;
 mod types;
 mod world;
 
@@ -33,6 +34,7 @@ use crate::engine::Engine;
 use crate::gui_renderer::GuiRenderer;
 use crate::player::Player;
 use crate::setting_storage::Setting;
+use crate::tracing_ex::WarnIfError;
 use crate::types::*;
 use crate::world::World;
 
@@ -310,22 +312,22 @@ fn main() {
                 if key_state.is_scancode_pressed(Scancode::W)
                     || key_state.is_scancode_pressed(Scancode::Up)
                 {
-                    api.try_move(&DirectionJson::Up);
+                    api.try_move(&DirectionJson::Up).warn_if_error("failed move");
                 }
                 if key_state.is_scancode_pressed(Scancode::S)
                     || key_state.is_scancode_pressed(Scancode::Down)
                 {
-                    api.try_move(&DirectionJson::Down);
+                    api.try_move(&DirectionJson::Down).warn_if_error("failed move");
                 }
                 if key_state.is_scancode_pressed(Scancode::D)
                     || key_state.is_scancode_pressed(Scancode::Right)
                 {
-                    api.try_move(&DirectionJson::Right);
+                    api.try_move(&DirectionJson::Right).warn_if_error("failed move");
                 }
                 if key_state.is_scancode_pressed(Scancode::A)
                     || key_state.is_scancode_pressed(Scancode::Left)
                 {
-                    api.try_move(&DirectionJson::Left);
+                    api.try_move(&DirectionJson::Left).warn_if_error("failed move");
                 }
 
                 // カメラ移動
@@ -367,13 +369,13 @@ fn main() {
 
                 let key_state = KeyboardState::new(&engine.event_pump);
                 if key_state.is_scancode_pressed(Scancode::Space) {
-                    api.restart();
+                    api.restart().unwrap_or_log();
                     client_state = ClientState::WaitingInRoom;
                 }
             }
 
             ClientState::Quit => {
-                api.disconnect();
+                api.disconnect().warn_if_error("failed disconnect");
                 setting.save().expect_or_log("設定ファイルの保存に失敗");
                 break 'main;
             }
