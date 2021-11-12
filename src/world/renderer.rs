@@ -114,6 +114,10 @@ impl PlayerRenderer {
         self.tagger = Some(tagger);
     }
 
+    pub fn set_no_tagger(&mut self) {
+        self.tagger = None;
+    }
+
     pub fn render(&mut self, field: &FieldMatrix) {
         self.vao_buffer.clear();
         for player in &self.players {

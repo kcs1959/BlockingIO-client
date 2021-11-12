@@ -2,7 +2,7 @@ digraph ClientState {
   graph [
     charset = "UTF-8"
   ];
-  label = "ClientState 遷移図 (2021年11月8日)"
+  label = "ClientState 遷移図 (2021年11月12日)"
   labelloc = t
   labeljust = c
   rankdir = TB
@@ -22,9 +22,7 @@ digraph ClientState {
   ];
   SettingConnection;
   WaitingSettingUid;
-  JoiningRoom0 [ label = "JoiningRoom{wait_frames=0}" ];
-  JoiningRoomN [ label = "JoiningRoom{wait_frames>0}" ];
-  {rank = same; JoiningRoom0; JoiningRoomN;}
+  JoiningRoom;
   WaitingInRoom;
   Playing;
   GameFinished [ label = "GameFinished{reason}" ];
@@ -48,28 +46,20 @@ digraph ClientState {
     label = "connect & setup-uid"
   ];
 
-  WaitingSettingUid -> JoiningRoom0 [
+  WaitingSettingUid -> JoiningRoom [
     label = "ApiEvent::UpdateUser"
   ];
 
-  JoiningRoom0 -> WaitingInRoom [
-    label = "join-roomが成功"
+  JoiningRoom -> WaitingInRoom [
+    label = "join-room成功"
   ];
 
-  JoiningRoom0 -> JoiningRoomN [
-    label = "join-roomが失敗"
-  ];
-
-  JoiningRoomN -> JoiningRoom0 [
-    label="wait_frames == 0"
-  ];
-
-  JoiningRoomN:s -> JoiningRoomN:s [
-    label = "wait_framesが0でない間\nwait_frames--"
+  JoiningRoom -> TitleScreen [
+    label = "join-room失敗"
   ];
 
   WaitingInRoom -> Playing [
-    label = "ApiEvent::RoomStateFulfilled"
+    label = "ApiEvent::RoomStateFulfilled\n{should_start=true}"
   ];
 
   Playing -> Playing [
@@ -80,8 +70,12 @@ digraph ClientState {
     label = "ApiEvent::GameFinished"
   ];
 
-  GameFinished:e -> TitleScreen [
-    label = "勝敗を(コンソールに)表示"
+  GameFinished -> WaitingInRoom [
+    label = "スペースキー"
+  ];
+
+  GameFinished -> GameFinished [
+    label = "ApiEvent::RoomStateFulfilled{..}"
   ];
 
 

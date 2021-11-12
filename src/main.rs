@@ -19,21 +19,22 @@ mod api;
 mod camera;
 mod engine;
 mod gui_renderer;
-mod mock_server;
 mod player;
 mod setting_storage;
 mod socketio_encoding;
+mod tracing_ex;
 mod types;
 mod world;
 
+use crate::api::client::ApiClient;
+use crate::api::client::ApiEvent;
 use crate::api::json::DirectionJson;
 use crate::camera::Camera;
 use crate::engine::Engine;
 use crate::gui_renderer::GuiRenderer;
-use crate::mock_server::Api;
-use crate::mock_server::ApiEvent;
 use crate::player::Player;
 use crate::setting_storage::Setting;
+use crate::tracing_ex::WarnIfError;
 use crate::types::*;
 use crate::world::World;
 
@@ -141,7 +142,7 @@ fn main() {
 
     let mut client_state = ClientState::TitleScreen;
 
-    let mut api = Api::new(&setting.server);
+    let mut api = ApiClient::new(&setting.server);
     let unhandled_events = Arc::new(Mutex::new(VecDeque::new()));
 
     // ゲーム開始から現在までのフレーム数。約60フレームで1秒
@@ -159,7 +160,6 @@ fn main() {
             }
         }
 
-        let mut world_updated = false;
         // Socket.ioのイベントを処理
         socketio_thread.block_on(async {
             let mut lock = unhandled_events.lock().unwrap_or_log();
@@ -169,7 +169,7 @@ fn main() {
                         if client_state == ClientState::WaitingSettingUid {
                             user_id = uid;
                             user_name = name;
-                            client_state = ClientState::JoiningRoom { wait_frames: 0 };
+                            client_state = ClientState::JoiningRoom;
                         } else {
                             warn!(
                                 "unexpected event ApiEvent::UpdateUser uid:{}. state: {:?}",
@@ -180,11 +180,20 @@ fn main() {
                     ApiEvent::RoomStateOpening { room_id, room_name } => {
                         info!("room opening id: {}, name: {}", room_id, room_name);
                     }
-                    ApiEvent::RoomStateFulfilled { room_id, room_name } => {
+                    ApiEvent::RoomStateFulfilled { room_id, room_name, should_start } => {
                         if client_state == ClientState::WaitingInRoom {
                             info!("room fulfilled id: {}, name: {}", room_id, room_name);
-                            client_state = ClientState::Playing;
-                        } else {
+                            if should_start {
+                                info!("starting game");
+                                client_state = ClientState::Playing;
+                            } else {
+                                info!("not starting game");
+                            }
+                        } else if let ClientState::GameFinished{..} = client_state {
+                            // 相手が先に再戦を希望した場合
+                            // 何もしない
+                        }
+                        else {
                             warn!(
                                 "unexpected event ApiEvent::RoomStateFulfilled room_id: {}, room_name: {}. state: {:?}",
                                  room_id, room_name ,
@@ -209,7 +218,6 @@ fn main() {
                             world.update(field);
                             world.set_players(players);
                             world.set_tagger(tagger);
-                            world_updated = true;
                         } else {
                             warn!(
                                 "unexpected event ApiEvent::UpdateField. state: {:?}",
@@ -275,27 +283,16 @@ fn main() {
                 gui_renderer.render(&gl, &gui_vao_config);
             }
 
-            ClientState::JoiningRoom { wait_frames: 0 } => {
-                match api.join_room("foo") {
+            ClientState::JoiningRoom => {
+                match api.join_room() {
                     Ok(_) => {
                         client_state = ClientState::WaitingInRoom;
                     }
                     Err(_) => {
-                        warn!("ルームに入れませんでした。約3秒後に再接続します。");
-                        client_state = ClientState::JoiningRoom { wait_frames: 60 * 3 };
+                        warn!("ルームに入れませんでした。タイトル画面に戻ります。");
+                        client_state = ClientState::TitleScreen;
                     }
                 };
-            }
-
-            ClientState::JoiningRoom { wait_frames } => {
-                tracing::trace!("join-room wait {}", wait_frames);
-                client_state = ClientState::JoiningRoom {
-                    wait_frames: wait_frames - 1,
-                };
-                gui_renderer.clear();
-                gui_renderer.change_window_size(width, height);
-                gui_renderer.draw_接続中();
-                gui_renderer.render(&gl, &gui_vao_config);
             }
 
             ClientState::WaitingInRoom => {
@@ -311,32 +308,34 @@ fn main() {
                 if key_state.is_scancode_pressed(Scancode::W)
                     || key_state.is_scancode_pressed(Scancode::Up)
                 {
-                    api.try_move(&DirectionJson::Up);
+                    api.try_move(&DirectionJson::Up).warn_if_error("failed move");
                 }
                 if key_state.is_scancode_pressed(Scancode::S)
                     || key_state.is_scancode_pressed(Scancode::Down)
                 {
-                    api.try_move(&DirectionJson::Down);
+                    api.try_move(&DirectionJson::Down).warn_if_error("failed move");
                 }
                 if key_state.is_scancode_pressed(Scancode::D)
                     || key_state.is_scancode_pressed(Scancode::Right)
                 {
-                    api.try_move(&DirectionJson::Right);
+                    api.try_move(&DirectionJson::Right).warn_if_error("failed move");
                 }
                 if key_state.is_scancode_pressed(Scancode::A)
                     || key_state.is_scancode_pressed(Scancode::Left)
                 {
-                    api.try_move(&DirectionJson::Left);
+                    api.try_move(&DirectionJson::Left).warn_if_error("failed move");
                 }
 
                 // カメラ移動
-                if world_updated {
+                if world.players_updated() {
                     camera.shade_to_new_position(own_player_pos, frames, 12);
                 }
                 camera.update_position(frames);
 
-                if world_updated {
+                if world.field_updated() {
                     field_vao = world.render_field().build(&gl, &vao_config);
+                }
+                if world.players_updated() {
                     player_vao = world.render_players().build(&gl, &vao_config);
                 }
                 render_field_and_player_vao(&field_vao, &player_vao, &camera, 0.5, width, height);
@@ -368,11 +367,16 @@ fn main() {
 
                 let key_state = KeyboardState::new(&engine.event_pump);
                 if key_state.is_scancode_pressed(Scancode::Space) {
-                    client_state = ClientState::TitleScreen; // TODO: request-after-gameイベントをemit
+                    world.update(FieldMatrix::zeros());
+                    world.set_players(Vec::new());
+                    world.set_no_tagger();
+                    api.restart().unwrap_or_log();
+                    client_state = ClientState::WaitingInRoom;
                 }
             }
 
             ClientState::Quit => {
+                api.disconnect().warn_if_error("failed disconnect");
                 setting.save().expect_or_log("設定ファイルの保存に失敗");
                 break 'main;
             }
@@ -431,8 +435,8 @@ enum ClientState {
     SettingConnection,
     /// on-update-userイベントを待っている状態
     WaitingSettingUid,
-    /// `wait_frames`フレーム後にjoin-roomすべき状態
-    JoiningRoom { wait_frames: u32 },
+    /// join-roomすべき状態
+    JoiningRoom,
     /// ルームに入っていて、ゲーム開始を待っている状態
     WaitingInRoom,
     /// ゲーム中
