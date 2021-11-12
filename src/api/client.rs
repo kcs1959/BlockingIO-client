@@ -141,10 +141,15 @@ impl ApiClient {
         Ok(())
     }
 
+    fn get_socket(&mut self) -> Result<&mut Socket, &str> {
+        self.socket.as_mut().ok_or("no socket")
+    }
+
     #[tracing::instrument(skip(self))]
     pub fn setup_uid(&mut self, uid: Uuid) -> Result<(), Box<dyn Error>> {
         info!("emitting");
-        self.socket.as_mut().unwrap_or_log().emit(
+        let socket = self.get_socket()?;
+        socket.emit(
             event::SETUP_UID,
             serde_json::to_string(&SetupUidJson { user_id: uid })?,
         )?;
@@ -153,47 +158,42 @@ impl ApiClient {
     }
 
     #[tracing::instrument(skip(self))]
-    pub fn join_room(&mut self, _id: &str) -> Result<(), rust_socketio::error::Error> {
+    pub fn join_room(&mut self, _id: &str) -> Result<(), Box<dyn Error>> {
         info!("emitting");
-        self.socket
-            .as_mut()
-            .unwrap_or_log()
-            .emit(event::JOIN_ROOM, serde_json::json!("{}"))?;
+        let socket = self.get_socket()?;
+        socket.emit(event::JOIN_ROOM, serde_json::json!("{}"))?;
         info!("done");
         Ok(())
     }
 
     #[tracing::instrument(skip(self))]
-    pub fn try_move(&mut self, direction: &DirectionJson) {
+    pub fn try_move(&mut self, direction: &DirectionJson) -> Result<(), Box<dyn Error>> {
         debug!("emitting");
-        self.socket
-            .as_mut()
-            .unwrap_or_log()
-            .emit(event::TRY_MOVE, serde_json::to_string(&direction).unwrap_or_log())
-            .unwrap_or_log();
-    }
-
-    #[tracing::instrument(skip(self))]
-    pub fn restart(&mut self) {
-        debug!("emitting");
-        self.socket
-            .as_mut()
-            .unwrap_or_log()
-            .emit(
-                event::REQUEST_AFTER_GAME,
-                serde_json::to_string(&RequestAfterGameJson::restart).unwrap_or_log(),
-            )
-            .unwrap_or_log();
+        let socket = self.get_socket()?;
+        socket.emit(event::TRY_MOVE, serde_json::to_string(&direction)?)?;
         debug!("done");
+        Ok(())
     }
 
     #[tracing::instrument(skip(self))]
-    pub fn disconnect(&mut self) {
+    pub fn restart(&mut self) -> Result<(), Box<dyn Error>> {
+        debug!("emitting");
+        let socket = self.get_socket()?;
+        socket.emit(
+            event::REQUEST_AFTER_GAME,
+            serde_json::to_string(&RequestAfterGameJson::restart)?,
+        )?;
+        debug!("done");
+        Ok(())
+    }
+
+    #[tracing::instrument(skip(self))]
+    pub fn disconnect(&mut self) -> Result<(), Box<dyn Error>> {
         debug!("disconnecting");
-        if let Some(socket) = self.socket.as_mut() {
-            socket.disconnect().unwrap_or_log();
-        }
+        let socket = self.get_socket()?;
+        socket.disconnect()?;
         debug!("disconnected");
+        Ok(())
     }
 }
 
