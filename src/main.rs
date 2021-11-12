@@ -190,7 +190,11 @@ fn main() {
                             } else {
                                 info!("not starting game");
                             }
-                        } else {
+                        } else if let ClientState::GameFinished{..} = client_state {
+                            // 相手が先に再戦を希望した場合
+                            // 何もしない
+                        }
+                        else {
                             warn!(
                                 "unexpected event ApiEvent::RoomStateFulfilled room_id: {}, room_name: {}. state: {:?}",
                                  room_id, room_name ,
