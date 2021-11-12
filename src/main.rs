@@ -2,6 +2,7 @@
 
 use std::collections::VecDeque;
 use std::ffi::CString;
+use std::fs::File;
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -59,7 +60,16 @@ fn main() {
         } else {
             tracing::Level::INFO
         };
-        tracing_subscriber::fmt().with_max_level(level).init();
+        if cfg!(debug_assertions) {
+            tracing_subscriber::fmt().pretty().with_max_level(level).init();
+        } else {
+            let log_file = File::create("blocking-io-log.txt").unwrap_or_log();
+            tracing_subscriber::fmt()
+                .with_writer(Mutex::new(log_file))
+                .with_ansi(false)
+                .with_max_level(level)
+                .init();
+        };
     }
 
     let setting = Setting::load().expect_or_log("設定ファイルの読み込みに失敗");
