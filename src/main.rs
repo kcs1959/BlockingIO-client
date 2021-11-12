@@ -160,7 +160,6 @@ fn main() {
             }
         }
 
-        let mut world_updated = false;
         // Socket.ioのイベントを処理
         socketio_thread.block_on(async {
             let mut lock = unhandled_events.lock().unwrap_or_log();
@@ -219,7 +218,6 @@ fn main() {
                             world.update(field);
                             world.set_players(players);
                             world.set_tagger(tagger);
-                            world_updated = true;
                         } else {
                             warn!(
                                 "unexpected event ApiEvent::UpdateField. state: {:?}",
@@ -329,13 +327,15 @@ fn main() {
                 }
 
                 // カメラ移動
-                if world_updated {
+                if world.players_updated() {
                     camera.shade_to_new_position(own_player_pos, frames, 12);
                 }
                 camera.update_position(frames);
 
-                if world_updated {
+                if world.field_updated() {
                     field_vao = world.render_field().build(&gl, &vao_config);
+                }
+                if world.players_updated() {
                     player_vao = world.render_players().build(&gl, &vao_config);
                 }
                 render_field_and_player_vao(&field_vao, &player_vao, &camera, 0.5, width, height);
@@ -370,8 +370,6 @@ fn main() {
                     world.update(FieldMatrix::zeros());
                     world.set_players(Vec::new());
                     world.set_no_tagger();
-                    field_vao = world.render_field().build(&gl, &vao_config);
-                    player_vao = world.render_players().build(&gl, &vao_config);
                     api.restart().unwrap_or_log();
                     client_state = ClientState::WaitingInRoom;
                 }
