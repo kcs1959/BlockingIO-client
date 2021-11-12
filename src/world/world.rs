@@ -45,6 +45,10 @@ impl World<FIELD_SIZE, FIELD_SIZE> {
         self.player_renderer.set_tagger(tagger);
     }
 
+    pub fn set_no_tagger(&mut self) {
+        self.player_renderer.set_no_tagger();
+    }
+
     pub fn render_field(&mut self) -> &VaoBuffer {
         self.field_renderer.render(&self.field);
         &self.field_renderer.vao_buffer

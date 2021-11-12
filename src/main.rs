@@ -363,6 +363,11 @@ fn main() {
 
                 let key_state = KeyboardState::new(&engine.event_pump);
                 if key_state.is_scancode_pressed(Scancode::Space) {
+                    world.update(FieldMatrix::zeros());
+                    world.set_players(Vec::new());
+                    world.set_no_tagger();
+                    field_vao = world.render_field().build(&gl, &vao_config);
+                    player_vao = world.render_players().build(&gl, &vao_config);
                     api.restart().unwrap_or_log();
                     client_state = ClientState::WaitingInRoom;
                 }
