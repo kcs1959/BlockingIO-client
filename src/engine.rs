@@ -38,7 +38,7 @@ impl Engine {
         }
 
         let window = video_subsystem
-            .window("SDL", 900, 480)
+            .window(&format!("Blocking.io v{}", env!("CARGO_PKG_VERSION")), 900, 480)
             .opengl()
             .position_centered()
             .resizable()
