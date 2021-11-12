@@ -42,9 +42,13 @@
 > cargo build
 ```
 
-# サーバーのアドレス
+# 設定ファイル
 
-1度実行すると、exeと同じディレクトリに`blocking-io-settings.toml`というファイルが生成されるので、`server`の項目を書き換える。
+1度実行すると、exeと同じディレクトリに`blocking-io-settings.toml`というファイルが生成される。
+
+* `uuid` - ユーザーID
+* `server` - サーバーのアドレス
+* `fullscreen` - フルスクリーン
 
 # ログ
 
