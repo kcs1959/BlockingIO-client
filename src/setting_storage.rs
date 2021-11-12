@@ -18,12 +18,14 @@ use crate::types::*;
 struct SettingToml {
     pub uuid: Option<Uuid>,
     pub server: Option<String>,
+    pub fullscreen: Option<bool>,
 }
 
 #[derive(Serialize)]
 pub struct Setting {
     pub uuid: Uuid,
     pub server: String,
+    pub fullscreen: bool,
 }
 
 impl Setting {
@@ -61,6 +63,7 @@ impl SettingToml {
         Self {
             uuid: None,
             server: None,
+            fullscreen: None,
         }
     }
 
@@ -94,7 +97,7 @@ impl SettingToml {
     }
 
     fn has_empty_property(&self) -> bool {
-        self.uuid.is_none() || self.server.is_none()
+        self.uuid.is_none() || self.server.is_none() || self.fullscreen.is_none()
     }
 
     fn fill_empty_value(&mut self) {
@@ -104,6 +107,10 @@ impl SettingToml {
         if self.server.is_none() {
             self.server = Some("http://13.114.119.94:3000".to_string());
         }
+        if self.fullscreen.is_none() {
+            self.fullscreen = Some(false);
+        }
+        debug_assert!(!self.has_empty_property());
     }
 }
 
@@ -117,6 +124,7 @@ impl TryFrom<SettingToml> for Setting {
             Ok(Setting {
                 uuid: value.uuid.unwrap_or_log(),
                 server: value.server.unwrap_or_log(),
+                fullscreen: value.fullscreen.unwrap_or_log(),
             })
         }
     }
@@ -127,6 +135,7 @@ impl From<&Setting> for SettingToml {
         SettingToml {
             uuid: Some(setting.uuid),
             server: Some(setting.server.clone()),
+            fullscreen: Some(setting.fullscreen),
         }
     }
 }

@@ -64,7 +64,10 @@ fn main() {
 
     let socketio_thread = tokio::runtime::Runtime::new().unwrap_or_log();
 
-    let mut engine = Engine::init();
+    let mut engine = Engine::init(
+        &format!("Blocking.io v{}", env!("CARGO_PKG_VERSION")),
+        setting.fullscreen,
+    );
     info!("done Engine init");
 
     let gl = engine.gl().clone();

@@ -19,7 +19,7 @@ pub struct Engine {
 
 impl Engine {
     #[tracing::instrument("init engine")]
-    pub fn init() -> Engine {
+    pub fn init(title: &str, fullscreen: bool) -> Engine {
         use tracing::info;
 
         let sdl = sdl2::init().unwrap_or_log();
@@ -37,13 +37,12 @@ impl Engine {
             info!("init OpenGL: version {}.{}", major, minor);
         }
 
-        let window = video_subsystem
-            .window(&format!("Blocking.io v{}", env!("CARGO_PKG_VERSION")), 900, 480)
-            .opengl()
-            .position_centered()
-            .resizable()
-            .build()
-            .unwrap_or_log();
+        let mut window_builder = video_subsystem.window(title, 900, 480);
+        window_builder.opengl().position_centered().resizable();
+        if fullscreen {
+            window_builder.fullscreen_desktop();
+        }
+        let window = window_builder.build().unwrap_or_log();
         info!("init window '{}'", window.title());
 
         let _gl_context = window.gl_create_context().unwrap_or_log();
