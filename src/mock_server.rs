@@ -14,8 +14,8 @@ use tracing::{debug, error, info, trace};
 
 use crate::{
     api::json::{
-        DirectionJson, OnUpdateUserJson, RoomStateEventJson, RoomStateJson, SetupUidJson, SquareJson,
-        UpdateFieldJson,
+        DirectionJson, OnUpdateUserJson, RequestAfterGameJson, RoomStateEventJson, RoomStateJson,
+        SetupUidJson, SquareJson, UpdateFieldJson,
     },
     player::{Player, Tagger},
     types::*,
@@ -175,6 +175,20 @@ impl Api {
             .emit(event::TRY_MOVE, serde_json::to_string(&direction).unwrap_or_log())
             .unwrap_or_log();
     }
+
+    #[tracing::instrument(skip(self))]
+    pub fn restart(&mut self) {
+        debug!("emitting");
+        self.socket
+            .as_mut()
+            .unwrap_or_log()
+            .emit(
+                event::REQUEST_AFTER_GAME,
+                serde_json::to_string(&RequestAfterGameJson::restart).unwrap_or_log(),
+            )
+            .unwrap_or_log();
+        debug!("done");
+    }
 }
 
 #[derive(Debug)]
@@ -218,6 +232,7 @@ mod event {
     pub const TRY_MOVE: &str = "try-move";
     pub const SETUP_UID: &str = "setup-uid";
     pub const UPDATE_USER: &str = "on-update-user";
+    pub const REQUEST_AFTER_GAME: &str = "request-after-game";
 }
 
 fn make_height_matrix(

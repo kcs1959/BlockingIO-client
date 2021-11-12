@@ -368,7 +368,8 @@ fn main() {
 
                 let key_state = KeyboardState::new(&engine.event_pump);
                 if key_state.is_scancode_pressed(Scancode::Space) {
-                    client_state = ClientState::TitleScreen; // TODO: request-after-gameイベントをemit
+                    api.restart();
+                    client_state = ClientState::WaitingInRoom;
                 }
             }
 
