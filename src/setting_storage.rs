@@ -105,7 +105,7 @@ impl SettingToml {
             self.uuid = Some(Uuid::new_v4());
         }
         if self.server.is_none() {
-            self.server = Some("http://13.114.119.94:3000".to_string());
+            self.server = Some("http://13.114.119.94:80".to_string());
         }
         if self.fullscreen.is_none() {
             self.fullscreen = Some(false);
