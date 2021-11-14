@@ -14,11 +14,13 @@ out vec3 FragPosition;
 out vec3 Normal;
 out vec2 TexCoords;
 
+out vec4 Position;
+
 void main()
 {
     Alpha = uAlpha;
     FragPosition = vec3(uModel * vec4(iPosition, 1.0));
     Normal = mat3(transpose(inverse(uModel))) * iNormal;
     TexCoords = iTexCoords;
-    gl_Position = uProjection * uView * vec4(FragPosition, 1.0);
+    Position = uProjection * uView * vec4(FragPosition, 1.0);
 }
