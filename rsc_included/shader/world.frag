@@ -22,6 +22,8 @@ uniform vec3 uViewPosition;
 uniform Material uMaterial;
 uniform Light uLight;
 
+out vec4 FragColor;
+
 void main()
 {
     vec3 texRGB = texture(uScreenTexture, TexCoords).rgb;
@@ -42,5 +44,5 @@ void main()
     vec3 result = ambient + diffuse + specular;
 
     // gl_FragColor = vec4(FragPosition, 1.0);
-    gl_FragColor = vec4(result, Alpha);
+    FragColor = vec4(result, Alpha);
 }
