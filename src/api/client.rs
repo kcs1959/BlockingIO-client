@@ -239,7 +239,7 @@ mod event {
     pub const JOIN_ROOM: &str = "join-room";
     pub const ROOM_STATE: &str = "room-state";
     pub const FIND_AVAILABLE_ROOM: &str = "find-available-room";
-    pub const UPDATE_FIELD: &str = "udpate-field"; // API側のタイポ
+    pub const UPDATE_FIELD: &str = "update-field";
     pub const TRY_MOVE: &str = "try-move";
     pub const SETUP_UID: &str = "setup-uid";
     pub const UPDATE_USER: &str = "on-update-user";
