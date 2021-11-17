@@ -72,6 +72,13 @@ pub enum GameStatusJson {
 }
 
 #[derive(Deserialize)]
+pub enum GameFinishReasonJson {
+    Fall,
+    Collision,
+    Timeup,
+}
+
+#[derive(Deserialize)]
 pub struct UpdateFieldJson {
     pub winner: Option<PlayerJson>,
     #[serde(rename = "tickCount")]
@@ -82,6 +89,8 @@ pub struct UpdateFieldJson {
     pub player_list: Vec<PlayerJson>,
     pub tagger: TaggerJson,
     pub state: GameStatusJson,
+    #[serde(rename = "finishReason")]
+    pub finish_reason: Option<GameFinishReasonJson>,
 }
 
 #[derive(Deserialize)]
