@@ -220,7 +220,12 @@ fn main() {
                         warn!("room-stateイベントによるとルームはEmptyです");
                     }
                     ApiEvent::RoomStateNotJoined => {
-                        info!("ルームから切断されました。");
+                        if !(matches!(client_state, ClientState::Playing | ClientState::GameFinished{..} | ClientState::WaitingInRoom)) {
+                            warn!(
+                                "unexpected event ApiEvent::RoomStateNotJoined. state: {:?}",
+                                client_state
+                            );
+                        }
                         client_state = ClientState::TitleScreen;
                     }
                     ApiEvent::UpdateField { players, tagger, field } => {
@@ -359,20 +364,35 @@ fn main() {
             ClientState::GameFinished { ref reason } => {
                 gui_renderer.clear();
                 gui_renderer.change_window_size(width, height);
+
                 match *reason {
-                    GameFinishReason::Normal { winner } => {
-                        if let Some(winner) = winner {
-                            if winner == user_id {
-                                gui_renderer.draw_勝ち();
-                            } else {
-                                gui_renderer.draw_負け();
-                            }
+                    GameFinishReason::Fall {
+                        winner_uid: Some(winner_uid),
+                    } => {
+                        if winner_uid == user_id {
+                            gui_renderer.draw_相手が落下しました();
+                            gui_renderer.draw_勝ち();
                         } else {
-                            gui_renderer.draw_引き分け();
+                            gui_renderer.draw_落下してしまった();
+                            gui_renderer.draw_負け();
                         }
                     }
-                    GameFinishReason::Abnromal => {
+                    GameFinishReason::Collision {
+                        winner_uid: Some(winner_uid),
+                    } => {
+                        if winner_uid == user_id {
+                            gui_renderer.draw_相手がつかまりました();
+                            gui_renderer.draw_勝ち();
+                        } else {
+                            gui_renderer.draw_つかまってしまった();
+                            gui_renderer.draw_負け();
+                        }
+                    }
+                    GameFinishReason::Timeup => {
                         gui_renderer.draw_引き分け();
+                    }
+                    _ => {
+                        gui_renderer.draw_異常終了();
                     }
                 };
                 gui_renderer.draw_スペースキーでスタート();
@@ -464,6 +484,8 @@ enum ClientState {
 
 #[derive(PartialEq, Debug)]
 pub enum GameFinishReason {
-    Normal { winner: Option<Uuid> },
+    Fall { winner_uid: Option<Uuid> },
+    Collision { winner_uid: Option<Uuid> },
+    Timeup,
     Abnromal,
 }

@@ -11,8 +11,8 @@ use tracing::{debug, error, info, trace};
 
 use crate::{
     api::json::{
-        DirectionJson, OnUpdateUserJson, RequestAfterGameJson, RoomStateEventJson, RoomStateJson,
-        SetupUidJson, SquareJson, UpdateFieldJson,
+        DirectionJson, GameFinishReasonJson, OnUpdateUserJson, RequestAfterGameJson, RoomStateEventJson,
+        RoomStateJson, SetupUidJson, SquareJson, UpdateFieldJson,
     },
     player::{Player, Tagger},
     types::*,
@@ -121,9 +121,22 @@ impl ApiClient {
                                 .push_back(field_update_event);
 
                             if let crate::api::json::GameStatusJson::Finish = json.state {
+                                let winner_uid = json.winner.map(|winner| winner.uid);
                                 let game_finished_event = ApiEvent::GameFinished {
-                                    reason: GameFinishReason::Normal {
-                                        winner: json.winner.map(|winner| winner.uid),
+                                    reason: match json.finish_reason {
+                                        Some(GameFinishReasonJson::Fall) => {
+                                            GameFinishReason::Fall { winner_uid }
+                                        }
+                                        Some(GameFinishReasonJson::Collision) => {
+                                            GameFinishReason::Collision { winner_uid }
+                                        }
+                                        Some(GameFinishReasonJson::Timeup) => GameFinishReason::Timeup,
+                                        None => {
+                                            tracing::warn!(
+                                                "stateがFinishなのにfinishReasonがありません"
+                                            );
+                                            GameFinishReason::Abnromal
+                                        }
                                     },
                                 };
                                 queue_update_field
@@ -239,7 +252,7 @@ mod event {
     pub const JOIN_ROOM: &str = "join-room";
     pub const ROOM_STATE: &str = "room-state";
     pub const FIND_AVAILABLE_ROOM: &str = "find-available-room";
-    pub const UPDATE_FIELD: &str = "udpate-field"; // API側のタイポ
+    pub const UPDATE_FIELD: &str = "update-field";
     pub const TRY_MOVE: &str = "try-move";
     pub const SETUP_UID: &str = "setup-uid";
     pub const UPDATE_USER: &str = "on-update-user";
