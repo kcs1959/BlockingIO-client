@@ -78,6 +78,18 @@ digraph ClientState {
     label = "ApiEvent::RoomStateFulfilled{..}"
   ];
 
+  GameFinished -> TitleScreen [
+    label = "ApiEvent::\nRoomStateNotJoined"
+  ];
+
+  WaitingInRoom -> TitleScreen [
+    label = "ApiEvent::\nRoomStateNotJoined"
+  ];
+
+  Playing -> TitleScreen [
+    label = "ApiEvent::\nRoomStateNotJoined"
+  ];
+
 
 
   any -> Quit [

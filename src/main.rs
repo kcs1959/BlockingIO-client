@@ -220,7 +220,12 @@ fn main() {
                         warn!("room-stateイベントによるとルームはEmptyです");
                     }
                     ApiEvent::RoomStateNotJoined => {
-                        info!("ルームから切断されました。");
+                        if !(matches!(client_state, ClientState::Playing | ClientState::GameFinished{..} | ClientState::WaitingInRoom)) {
+                            warn!(
+                                "unexpected event ApiEvent::RoomStateNotJoined. state: {:?}",
+                                client_state
+                            );
+                        }
                         client_state = ClientState::TitleScreen;
                     }
                     ApiEvent::UpdateField { players, tagger, field } => {
