@@ -4,7 +4,7 @@
 
 1. ビルドする
 
-2. `cargo run`
+2. `cargo run` または `cargo run --release`
 
 ※ WSL2 + VcXsrv を使う場合は、Native opengl をオフに、Disable access control をオンにする。
 
