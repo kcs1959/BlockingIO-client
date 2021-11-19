@@ -12,7 +12,7 @@
 
 ## Windows
 ```
-> cargo build
+> cargo build   # または cargo build --release
 ```
 
 ## macOS
@@ -27,19 +27,19 @@
 ### Ubuntu
 ```
 > sudo apt install libsdl2-dev
-> cargo build
+> cargo build   # または cargo build --release
 ```
 
 ### Fedora (未検証)
 ```
 > sudo dnf install SDL2-devel
-> cargo build
+> cargo build   # または cargo build --release
 ```
 
 ### Arch (未検証)
 ```
 > sudo pacman -S sdl2
-> cargo build
+> cargo build   # または cargo build --release
 ```
 
 # 設定ファイル
